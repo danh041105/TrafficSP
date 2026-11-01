@@ -1,0 +1,6 @@
+dataset/
+.env
+venv/
+__pycache__/
+docker-data/
+minio.license
