@@ -1,0 +1,80 @@
+{
+ "batch_id": "phase5-20261102T102937Z",
+ "checks": {
+  "grid_rows_equal_expected": true,
+  "hourly_pk_unique": true,
+  "sum_n_records_equal_atomic_assigned": true,
+  "sum_n_valid_equal_atomic": true,
+  "sum_speed_equal_atomic": true,
+  "sum_travel_time_equal_atomic": true,
+  "counts_partition_n_records": true,
+  "dst_unassigned_equal_2468": true,
+  "dst_ambiguous_hours_flagged": true,
+  "join_rows_equal_hourly": true,
+  "join_pk_unique": true,
+  "join_all_weather_matched": true,
+  "fk_date_time_valid": true
+ },
+ "atomic": {
+  "assigned": 12712376,
+  "dst_unassigned": 2468,
+  "valid_assigned": 9909907
+ },
+ "hourly": {
+  "rows": 1078584,
+  "expected_grid": 1078584,
+  "sum_n_records": 12712376,
+  "sum_n_valid": 9909907
+ },
+ "hourly_profile": {
+  "empty_hours": 12278,
+  "zero_only_hours": 205028,
+  "overfilled_hours": 206,
+  "hours_cov_ge_6": 836667,
+  "stuck_hours": 1465,
+  "outage_hours": 34
+ },
+ "outage_hours_by_day": [
+  [
+   "2025-06-12",
+   1
+  ],
+  [
+   "2025-06-19",
+   9
+  ],
+  [
+   "2025-06-20",
+   10
+  ],
+  [
+   "2025-10-28",
+   2
+  ],
+  [
+   "2025-10-29",
+   8
+  ],
+  [
+   "2025-12-01",
+   4
+  ]
+ ],
+ "mart_rows": 1078584,
+ "partitions": [
+  "month_utc=2025-01",
+  "month_utc=2025-02",
+  "month_utc=2025-03",
+  "month_utc=2025-04",
+  "month_utc=2025-05",
+  "month_utc=2025-06",
+  "month_utc=2025-07",
+  "month_utc=2025-08",
+  "month_utc=2025-09",
+  "month_utc=2025-10",
+  "month_utc=2025-11",
+  "month_utc=2025-12",
+  "month_utc=2026-01"
+ ],
+ "duckdb_file": "data/nyc_dw.duckdb"
+}

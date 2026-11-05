@@ -1,0 +1,21 @@
+﻿day_part,weather_class,avg_speed_mph,link_hours,pct_vs_dry
+Ban ngày,1. Khô,33.84,98396,0.0
+Ban ngày,"2. Mưa nhỏ 0,1–1 mm/h",32.53,14419,-3.9
+Ban ngày,3. Mưa ≥ 1 mm/h,31.76,3573,-6.1
+Ban ngày,4. Tuyết,37.01,600,9.4
+Cao điểm chiều,1. Khô,28.72,80164,0.0
+Cao điểm chiều,"2. Mưa nhỏ 0,1–1 mm/h",27.21,8798,-5.2
+Cao điểm chiều,3. Mưa ≥ 1 mm/h,26.21,3300,-8.7
+Cao điểm chiều,4. Tuyết,32.06,1258,11.6
+Cao điểm sáng,1. Khô,35.13,81306,0.0
+Cao điểm sáng,"2. Mưa nhỏ 0,1–1 mm/h",32.76,7572,-6.7
+Cao điểm sáng,3. Mưa ≥ 1 mm/h,31.27,2866,-11.0
+Cao điểm sáng,4. Tuyết,33.87,993,-3.6
+Tối,1. Khô,39.34,100399,0.0
+Tối,"2. Mưa nhỏ 0,1–1 mm/h",38.13,9266,-3.1
+Tối,3. Mưa ≥ 1 mm/h,36.35,4257,-7.6
+Tối,4. Tuyết,37.86,2150,-3.7
+Đêm,1. Khô,46.28,119711,0.0
+Đêm,"2. Mưa nhỏ 0,1–1 mm/h",44.38,9117,-4.1
+Đêm,3. Mưa ≥ 1 mm/h,43.12,3911,-6.8
+Đêm,4. Tuyết,45.3,1121,-2.1

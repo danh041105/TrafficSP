@@ -1,0 +1,16 @@
+﻿day_type,day_part,avg_speed_mph,n_days
+Holiday,Ban ngày,38.12,11
+Weekday,Ban ngày,33.58,250
+Weekend,Ban ngày,36.56,104
+Holiday,Cao điểm chiều,36.75,11
+Weekday,Cao điểm chiều,28.49,250
+Weekend,Cao điểm chiều,33.13,104
+Holiday,Cao điểm sáng,44.86,11
+Weekday,Cao điểm sáng,34.73,250
+Weekend,Cao điểm sáng,45.58,104
+Holiday,Tối,40.77,11
+Weekday,Tối,39.03,250
+Weekend,Tối,38.11,104
+Holiday,Đêm,44.7,11
+Weekday,Đêm,45.88,250
+Weekend,Đêm,44.37,104

@@ -1,0 +1,13 @@
+2026-11-02 17:15:10,890 INFO batch phase2-20261102T101510Z
+2026-11-02 17:15:12,853 INFO nyc_dot 2025-01.parquet rows=1079027 sao_chep_moi
+2026-11-02 17:15:13,272 INFO nyc_dot 2025-02.parquet rows=975744 sao_chep_moi
+2026-11-02 17:15:13,761 INFO nyc_dot 2025-03.parquet rows=1078263 sao_chep_moi
+2026-11-02 17:15:14,149 INFO nyc_dot 2025-04.parquet rows=1037270 sao_chep_moi
+2026-11-02 17:15:14,548 INFO nyc_dot 2025-05.parquet rows=1066866 sao_chep_moi
+2026-11-02 17:15:14,896 INFO nyc_dot 2025-06.parquet rows=1005175 sao_chep_moi
+2026-11-02 17:15:15,269 INFO nyc_dot 2025-07.parquet rows=1084419 sao_chep_moi
+2026-11-02 17:15:15,657 INFO nyc_dot 2025-08.parquet rows=1095253 sao_chep_moi
+2026-11-02 17:15:16,050 INFO nyc_dot 2025-09.parquet rows=1058347 sao_chep_moi
+2026-11-02 17:15:16,410 INFO nyc_dot 2025-10.parquet rows=1078806 sao_chep_moi
+2026-11-02 17:15:16,799 INFO nyc_dot 2025-11.parquet rows=1061273 sao_chep_moi
+2026-11-02 17:15:17,247 INFO nyc_dot 2025-12.parquet rows=1094401 sao_chep_moi

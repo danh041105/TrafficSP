@@ -1,0 +1,21 @@
+# Quy tac chat luong. Cac gia tri danh dau PENDING cho xac nhan trong docs/decisions.md.
+traffic:
+  speed_valid: {min_exclusive: 0, max_inclusive: 100}      # mph; PENDING (D-05)
+  travel_time_valid: {min_exclusive: 0}                     # giay
+  invalid_reasons: [speed_zero, speed_gt_max, travel_time_nonpositive, speed_zero_tt_positive]
+  expected_readings_per_hour: 12                            # chu ky 5 phut (kiem chung: 96% khoang cach 4-6 phut)
+  stuck_min_consecutive: 12                                 # cung gia tri speed > 0 lien tiep >= 12 lan (>= 1 gio); chi gan co
+  low_coverage_min_valid: 6                                 # n_valid < 6/12 -> low_coverage; PENDING (D-06)
+  link_low_quality_valid_share: 0.5                         # link co < 50% ban ghi hop le ca nam -> co; PENDING (D-07)
+  network_outage_min_share_links_missing: 0.9               # >= 90% link khong co ban ghi trong gio -> co; PENDING (D-08)
+  dst_ambiguous: {date_local: 2025-11-02, hour_local: 1, policy: keep_flag_null_utc}   # PENDING (D-03)
+geometry:
+  bbox: {lat_min: 40.3, lat_max: 41.2, lon_min: -74.6, lon_max: -73.4}
+  max_point_deviation_km: 3.0                               # diem cach trung vi > 3 km -> loai khoi tinh diem dai dien
+  representative_point: median_of_valid_points
+mapping:
+  method: nearest_land_cell_haversine
+  far_flag_km: 6.7                                          # nua duong cheo o IFS (~7.8 x 10.8 km)
+weather:
+  expected_hours_per_cell: 8808                             # 2024-12-31 .. 2026-01-01 (367 ngay x 24)
+  allow_null: false                                         # khong noi suy; null -> bao cao

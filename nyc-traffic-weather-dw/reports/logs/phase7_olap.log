@@ -1,0 +1,9 @@
+2026-11-02 17:34:34,635 INFO q1_speed_by_borough_month rows=60
+2026-11-02 17:34:34,687 INFO q2_rain_vs_dry rows=20
+2026-11-02 17:34:34,765 INFO q3_top10_slowest_links rows=10
+2026-11-02 17:34:34,828 INFO q4_daytype_comparison rows=15
+2026-11-02 17:34:34,857 INFO q5_manhattan_17h_holiday rows=26
+2026-11-02 17:34:34,890 INFO q6_drilldown_borough_link rows=107
+2026-11-02 17:34:34,924 INFO q7_rollup_hour_day_month rows=777
+2026-11-02 17:34:34,958 INFO q8_drill_across_daily rows=10
+2026-11-02 17:34:34,963 INFO PHASE 7 OK {'q6_borough_sum_equals_nyc': True, 'q6_links_sum_equals_borough': True, 'q7_days_sum_equals_month': True, 'q7_hours_sum_equals_days': True, 'q5_has_rows': True}

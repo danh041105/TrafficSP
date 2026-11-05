@@ -1,0 +1,146 @@
+[
+ {
+  "weather_location_id": "ifs_40.5272_-74.2373",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.52724&longitude=-74.23727&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426783,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:21Z"
+ },
+ {
+  "weather_location_id": "ifs_40.5975_-74.2150",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.59754&longitude=-74.21500&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426596,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:25Z"
+ },
+ {
+  "weather_location_id": "ifs_40.5975_-74.0877",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.59754&longitude=-74.08771&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 427331,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:29Z"
+ },
+ {
+  "weather_location_id": "ifs_40.5975_-73.9604",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.59754&longitude=-73.96039&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 428182,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:33Z"
+ },
+ {
+  "weather_location_id": "ifs_40.6678_-74.1927",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.66783&longitude=-74.19266&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426191,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:38Z"
+ },
+ {
+  "weather_location_id": "ifs_40.6678_-73.9377",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.66783&longitude=-73.93768&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426488,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:42Z"
+ },
+ {
+  "weather_location_id": "ifs_40.6678_-73.8102",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.66783&longitude=-73.81021&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 427086,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:47Z"
+ },
+ {
+  "weather_location_id": "ifs_40.6678_-73.6827",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.66783&longitude=-73.68274&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 427371,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:51Z"
+ },
+ {
+  "weather_location_id": "ifs_40.7381_-74.0425",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.73814&longitude=-74.04254&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425370,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:09:55Z"
+ },
+ {
+  "weather_location_id": "ifs_40.7381_-73.9149",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.73814&longitude=-73.91489&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425040,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:02Z"
+ },
+ {
+  "weather_location_id": "ifs_40.7381_-73.7872",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.73814&longitude=-73.78723&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425522,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:06Z"
+ },
+ {
+  "weather_location_id": "ifs_40.8084_-74.0199",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.80843&longitude=-74.01990&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425566,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:10Z"
+ },
+ {
+  "weather_location_id": "ifs_40.8084_-73.8921",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.80843&longitude=-73.89206&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425703,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:14Z"
+ },
+ {
+  "weather_location_id": "ifs_40.8084_-73.7642",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.80843&longitude=-73.76422&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426089,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:18Z"
+ },
+ {
+  "weather_location_id": "ifs_40.8787_-73.9972",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.87873&longitude=-73.99716&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 425691,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:23Z"
+ },
+ {
+  "weather_location_id": "ifs_40.8787_-73.8691",
+  "url": "https://archive-api.open-meteo.com/v1/archive?latitude=40.87873&longitude=-73.86914&start_date=2024-12-31&end_date=2026-01-01&hourly=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_gusts_10m,weather_code&timezone=GMT&models=ecmwf_ifs",
+  "bytes": 426328,
+  "rows": 8808,
+  "nulls": 0,
+  "same_cell_returned": true,
+  "downloaded_utc": "2026-11-01T02:10:27Z"
+ }
+]

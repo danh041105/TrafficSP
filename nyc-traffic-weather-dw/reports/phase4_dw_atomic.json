@@ -1,0 +1,77 @@
+{
+ "batch_id": "phase4-20261102T103553Z",
+ "checks": {
+  "dim_date_365_plus_unknown": true,
+  "dim_date_11_holidays": true,
+  "dim_time_24_plus_unknown": true,
+  "dim_road_link_124_plus_unknown_bk_unique": true,
+  "dim_road_link_pk_unique": true,
+  "dim_road_link_all_mapped": true,
+  "dim_weather_location_16_plus_unknown": true,
+  "dim_weather_condition_28_plus_unknown": true,
+  "fact_traffic_reading_rows_equal_source": true,
+  "fact_traffic_reading_pk_unique": true,
+  "fact_traffic_reading_no_unknown_road": true,
+  "fact_traffic_reading_fk_date_time": true,
+  "fact_weather_hourly_rows_16x8760": true,
+  "fact_weather_hourly_pk_unique": true,
+  "fact_weather_no_unknown_fk": true,
+  "fact_weather_fk_date_time": true
+ },
+ "dim_road_link": {
+  "links": "124.0",
+  "low_quality": "23.0",
+  "no_free_flow": "12.0",
+  "ff_min": "9.9",
+  "ff_med": "53.4",
+  "ff_max": "64.6"
+ },
+ "fact_traffic_reading": {
+  "n": 12714844,
+  "valid": 9911819,
+  "amb": 2468,
+  "stuck": 10753
+ },
+ "fact_weather_hourly_by_category": {
+  "Cloudy": 60852,
+  "Clear": 59752,
+  "Drizzle": 13756,
+  "Rain": 3013,
+  "Snow": 2194,
+  "Showers": 495,
+  "Thunderstorm": 56,
+  "Fog": 42
+ },
+ "date_key_check_local_vs_utc": [
+  [
+   "2025-01-01 05:00:00+00:00",
+   "20250101",
+   "0"
+  ],
+  [
+   "2025-03-09 06:00:00+00:00",
+   "20250309",
+   "1"
+  ],
+  [
+   "2025-03-09 07:00:00+00:00",
+   "20250309",
+   "3"
+  ],
+  [
+   "2025-11-02 05:00:00+00:00",
+   "20251102",
+   "1"
+  ],
+  [
+   "2025-11-02 06:00:00+00:00",
+   "20251102",
+   "1"
+  ],
+  [
+   "2026-01-01 04:00:00+00:00",
+   "20251231",
+   "23"
+  ]
+ ]
+}

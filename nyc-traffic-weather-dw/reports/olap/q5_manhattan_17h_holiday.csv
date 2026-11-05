@@ -1,0 +1,27 @@
+﻿link_name,holiday_name,hour_label,avg_speed_mph,n_valid,free_flow_mph,traffic_status,weather,temperature_c,precipitation_mm,wind_gust_kmh
+BQE N Atlantic Ave - MAN Bridge Manhattan Side,Independence Day,17:00,2.5,12,9.9,Ùn tắc,Trời quang,28.0,0.0,30.6
+FDR N 25th - 63rd St,Independence Day,17:00,23.8,12,47.8,Ùn tắc,Trời quang,28.7,0.0,31.0
+LINCOLN TUNNEL E SOUTH TUBE - NJ - NY,Independence Day,17:00,25.1,12,33.6,Chậm,Trời quang,28.2,0.0,32.0
+BBT E Manhattan Portal - Toll Plaza,Independence Day,17:00,28.0,12,45.4,Chậm,Trời quang,28.2,0.0,32.0
+LINCOLN TUNNEL E CENTER TUBE NJ - NY,Independence Day,17:00,33.1,7,34.8,Thông thoáng,Trời quang,28.2,0.0,32.0
+TBB W - FDR S MANHATTAN TRUSS - E116TH STREET,Independence Day,17:00,34.8,12,38.5,Thông thoáng,Trời quang,28.3,0.0,28.4
+FDR N - TBB E 116TH STREET - MANHATTAN TRUSS,Independence Day,17:00,34.9,12,37.9,Thông thoáng,Trời quang,28.3,0.0,28.4
+QMT E Manhattan Side - Toll Plaza,Independence Day,17:00,35.3,12,37.3,Thông thoáng,Trời quang,28.7,0.0,31.0
+LINCOLN TUNNEL W NORTH TUBE NY - NJ,Independence Day,17:00,36.1,12,42.3,Thông thoáng,Trời quang,28.2,0.0,32.0
+BBT W Toll Plaza - Manhattan Portal,Independence Day,17:00,36.8,12,48.5,Chậm,Trời quang,28.2,0.0,32.0
+GWB E LOWER LEVEL PLAZA - CBE E LOWER LEVEL AMSTERDAM AVE,Independence Day,17:00,41.6,12,51.0,Thông thoáng,Trời quang,28.2,0.0,29.5
+FDR S 63rd - 25th St,Independence Day,17:00,44.4,12,49.7,Thông thoáng,Trời quang,28.7,0.0,31.0
+12th Ave S 57th St - 45th St,Independence Day,17:00,,0,,Không xác định,Trời quang,27.8,0.0,28.8
+LINCOLN TUNNEL W CENTER TUBE NY - NJ,Independence Day,17:00,,0,35.4,Không xác định,Trời quang,28.2,0.0,32.0
+FDR S Catherine Slip - BKN Bridge Manhattan Side,Independence Day,17:00,,0,34.8,Không xác định,Trời quang,28.2,0.0,32.0
+Westside Hwy S GWB - 57th St,Independence Day,17:00,,0,,Không xác định,Trời quang,28.3,0.0,28.4
+BQE N Atlantic Ave - BKN Bridge Manhattan Side,Independence Day,17:00,,0,41.6,Không xác định,Trời quang,28.0,0.0,30.6
+12th Ave N 40th - 57th St,Independence Day,17:00,,0,,Không xác định,Trời quang,27.8,0.0,28.8
+11th ave n ganservoort - 12th ave @ 40th st,Independence Day,17:00,,0,,Không xác định,Trời quang,28.2,0.0,32.0
+FDR S 25th St - Catherine Slip,Independence Day,17:00,,0,51.0,Không xác định,Trời quang,28.7,0.0,31.0
+12th ave @ 45th - 11 ave ganservoort st,Independence Day,17:00,,0,,Không xác định,Trời quang,28.2,0.0,32.0
+West St S Spring St - BBT Manhattan Portal outbound,Independence Day,17:00,,0,18.6,Không xác định,Trời quang,28.2,0.0,32.0
+11th ave s ganservoort - west st @ spring st,Independence Day,17:00,,0,,Không xác định,Trời quang,28.2,0.0,32.0
+FDR N Catherine Slip - 25th St,Independence Day,17:00,,0,49.1,Không xác định,Trời quang,28.7,0.0,31.0
+BKN Bridge Manhattan Side - FDR N Catherine Slip,Independence Day,17:00,,0,34.2,Không xác định,Trời quang,28.2,0.0,32.0
+Westside Hwy N 57th St - GWB,Independence Day,17:00,,0,,Không xác định,Trời quang,27.8,0.0,28.8

@@ -1,0 +1,489 @@
+{
+ "recon_traffic": [
+  [
+   "Cổng NYC Open Data (lọc 2025)",
+   12714844,
+   "hộp thoại Export, 31/10/2026"
+  ],
+  [
+   "Raw: 12 file Parquet",
+   12714844,
+   "manifest"
+  ],
+  [
+   "Staging: stg_traffic_reading",
+   12714844,
+   "giữ toàn bộ"
+  ],
+  [
+   "DW: fact_traffic_reading",
+   12714844,
+   "giữ toàn bộ"
+  ],
+  [
+   "  trong đó gán được giờ UTC",
+   12712376,
+   ""
+  ],
+  [
+   "  trong đó giờ DST kép (không gán giờ, D-03)",
+   2468,
+   "01:00–01:59 ngày 02/11"
+  ],
+  [
+   "DW: fact_traffic_hourly – Σ n_records",
+   12712376,
+   "= số bản ghi gán được giờ"
+  ],
+  [
+   "Mart: fact_traffic_weather_hourly – Σ n_records",
+   12712376,
+   "= hourly"
+  ]
+ ],
+ "recon_rows": [
+  [
+   "fact_traffic_hourly (dòng = link × giờ)",
+   1078584,
+   "lưới đủ từ giờ đầu tới giờ cuối của mỗi link"
+  ],
+  [
+   "fact_traffic_weather_hourly (dòng)",
+   1078584,
+   "= hourly, JOIN N:1"
+  ]
+ ],
+ "recon_weather": [
+  [
+   "Raw: 16 file JSON (giờ API)",
+   140928,
+   "16 × 8 808, 31/12/2024–01/01/2026 UTC"
+  ],
+  [
+   "Staging: stg_weather_hourly",
+   140928,
+   "giữ toàn bộ"
+  ],
+  [
+   "Staging: stg_weather_interval",
+   140160,
+   "16 × 8 760 khoảng thuộc năm 2025 giờ NY; bỏ 48 giờ đệm/ô (29 trước, 19 sau; giờ đệm đầu tiên sau năm dùng làm H+1)"
+  ],
+  [
+   "DW: fact_weather_hourly",
+   140160,
+   "= interval"
+  ]
+ ],
+ "recon_links": [
+  [
+   "Link trong nguồn",
+   124,
+   ""
+  ],
+  [
+   "dim_road_link (không tính unknown)",
+   124,
+   ""
+  ],
+  [
+   "Link có ô thời tiết",
+   124,
+   ""
+  ]
+ ],
+ "invalid_reason": [
+  [
+   "hợp lệ",
+   9911819,
+   77.95
+  ],
+  [
+   "speed_zero",
+   2802797,
+   22.04
+  ],
+  [
+   "speed_zero_tt_positive",
+   120,
+   0.0
+  ],
+  [
+   "speed_gt_max",
+   108,
+   0.0
+  ]
+ ],
+ "valid_by_month": [
+  [
+   "2025-01",
+   80.4
+  ],
+  [
+   "2025-02",
+   75.0
+  ],
+  [
+   "2025-03",
+   77.5
+  ],
+  [
+   "2025-04",
+   77.6
+  ],
+  [
+   "2025-05",
+   75.5
+  ],
+  [
+   "2025-06",
+   77.4
+  ],
+  [
+   "2025-07",
+   78.8
+  ],
+  [
+   "2025-08",
+   81.1
+  ],
+  [
+   "2025-09",
+   81.3
+  ],
+  [
+   "2025-10",
+   80.7
+  ],
+  [
+   "2025-11",
+   75.4
+  ],
+  [
+   "2025-12",
+   74.4
+  ]
+ ],
+ "speed_before_after": [
+  [
+   "tất cả bản ghi",
+   0.0,
+   5.6,
+   33.6,
+   49.1,
+   59.0,
+   29.47,
+   119.3
+  ],
+  [
+   "hợp lệ",
+   6.2,
+   24.2,
+   42.3,
+   51.6,
+   60.3,
+   37.8,
+   99.4
+  ]
+ ],
+ "hours": [
+  1078584,
+  12278,
+  205028,
+  836667,
+  206,
+  1465,
+  34,
+  248
+ ],
+ "missing_by_month": [
+  [
+   "2025-01",
+   712,
+   80.3
+  ],
+  [
+   "2025-02",
+   672,
+   75.1
+  ],
+  [
+   "2025-03",
+   750,
+   77.6
+  ],
+  [
+   "2025-04",
+   1392,
+   77.0
+  ],
+  [
+   "2025-05",
+   1620,
+   74.7
+  ],
+  [
+   "2025-06",
+   3993,
+   74.2
+  ],
+  [
+   "2025-07",
+   808,
+   78.5
+  ],
+  [
+   "2025-08",
+   61,
+   81.4
+  ],
+  [
+   "2025-09",
+   0,
+   82.0
+  ],
+  [
+   "2025-10",
+   1240,
+   80.1
+  ],
+  [
+   "2025-11",
+   502,
+   75.4
+  ],
+  [
+   "2025-12",
+   528,
+   74.1
+  ],
+  [
+   "2026-01",
+   0,
+   81.8
+  ]
+ ],
+ "outage_days": [
+  [
+   "2025-06-12",
+   1
+  ],
+  [
+   "2025-06-19",
+   9
+  ],
+  [
+   "2025-06-20",
+   10
+  ],
+  [
+   "2025-10-28",
+   2
+  ],
+  [
+   "2025-10-29",
+   8
+  ],
+  [
+   "2025-12-01",
+   4
+  ]
+ ],
+ "low_quality_links": [
+  [
+   "4616255",
+   "MDE N RFK Bridge - 142nd St",
+   "Bronx",
+   0.0
+  ],
+  [
+   "4616323",
+   "12th Ave S 57th St - 45th St",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4616324",
+   "12th ave @ 45th - 11 ave ganservoort st",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4616325",
+   "11th ave s ganservoort - west st @ spring st",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4616337",
+   "11th ave n ganservoort - 12th ave @ 40th st",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4616338",
+   "12th Ave N 40th - 57th St",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4616346",
+   "Westside Hwy S GWB - 57th St",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4620343",
+   "Westside Hwy N 57th St - GWB",
+   "Manhattan",
+   0.0
+  ],
+  [
+   "4763649",
+   "VNB W BROOKLYN GANTRY UPPER LEVEL - SI GANTRY UPPER LEVEL",
+   "Brooklyn",
+   0.0
+  ],
+  [
+   "4763652",
+   "VNB E SI GANTRY UPPER LEVEL - BROOKLYN GANTRY UPPER LEVEL",
+   "Brooklyn",
+   0.0
+  ],
+  [
+   "4763655",
+   "GOW S VNB W 92ND STREET - BKLYN GANTRY UPPER LEVEL",
+   "Brooklyn",
+   0.0
+  ],
+  [
+   "4763657",
+   "GOW S VNB W 92ND STREET - BKLYN GANTRY LOWER LEVEL",
+   "Brooklyn",
+   0.0
+  ],
+  [
+   "4616203",
+   "WSE S BLLOMINGDALE ROAD - TYRELLAN AVENUE",
+   "Staten Island",
+   1.1
+  ],
+  [
+   "4616215",
+   "WSE N TYRELLAN AVENUE - BLOOMINGDALE ROAD",
+   "Staten Island",
+   1.1
+  ],
+  [
+   "4616216",
+   "SIE E-MLK N RICHMOND AVENUE - WALKER STREET",
+   "Staten Island",
+   16.9
+  ],
+  [
+   "4329508",
+   "LINCOLN TUNNEL W CENTER TUBE NY - NJ",
+   "Manhattan",
+   29.0
+  ],
+  [
+   "4616266",
+   "BRP S FORDHAM ROAD - WATSON AVENUE",
+   "Bronx",
+   33.0
+  ],
+  [
+   "4616282",
+   "ROUTE 169 S - MLK WALKER STREET",
+   "Staten Island",
+   34.1
+  ],
+  [
+   "4616217",
+   "SIE W - MLK N WOOLEY AVENUE - WLAKER STREET",
+   "Staten Island",
+   38.3
+  ],
+  [
+   "4616196",
+   "MLK S - SIE E WALKER STREET - WOOLEY AVENUE",
+   "Staten Island",
+   39.1
+  ],
+  [
+   "4329473",
+   "LINCOLN TUNNEL E CENTER TUBE NJ - NY",
+   "Manhattan",
+   39.5
+  ],
+  [
+   "4620315",
+   "CBE W L/LE V AMSTERDAM AVE - I 95 S LOC LNS",
+   "Bronx",
+   41.1
+  ],
+  [
+   "4616193",
+   "SIE E BRADLEY AVENUE - CLOVE ROAD",
+   "Staten Island",
+   45.1
+  ]
+ ],
+ "mapping": [
+  0.83,
+  4.41,
+  6.75,
+  1,
+  16
+ ],
+ "mapping_api_agree": 114,
+ "weather_ranges": [
+  -16.8,
+  41.3,
+  12.53,
+  18,
+  100,
+  59.9,
+  119.5,
+  0,
+  21.4,
+  3.29,
+  63
+ ],
+ "weather_totals": [
+  1021.0,
+  1098.0,
+  1208.0,
+  42.4,
+  53.3
+ ],
+ "unknown_members_used": 0,
+ "tests": {
+  "returncode": 0,
+  "passed": [
+   "tests/test_01_raw_lineage.py::test_raw_checksums_match_manifest",
+   "tests/test_01_raw_lineage.py::test_raw_rows_equal_expected",
+   "tests/test_01_raw_lineage.py::test_every_fact_row_traceable_to_source_file",
+   "tests/test_01_raw_lineage.py::test_fact_row_count_per_source_file",
+   "tests/test_02_atomic.py::test_traffic_reading_values_identical_to_raw",
+   "tests/test_02_atomic.py::test_traffic_reading_grain_unique",
+   "tests/test_02_atomic.py::test_weather_grain_unique",
+   "tests/test_02_atomic.py::test_dimension_keys_unique_and_unknown_present",
+   "tests/test_02_atomic.py::test_foreign_keys_resolve",
+   "tests/test_02_atomic.py::test_dst_handling_matches_tzdata",
+   "tests/test_02_atomic.py::test_speed_zero_kept_not_dropped",
+   "tests/test_03_weather_mapping.py::test_instant_variables_taken_at_interval_start",
+   "tests/test_03_weather_mapping.py::test_accumulated_variables_taken_at_interval_end",
+   "tests/test_03_weather_mapping.py::test_weather_covers_local_year_exactly",
+   "tests/test_03_weather_mapping.py::test_every_link_mapped_with_distance_and_version",
+   "tests/test_04_aggregate_mart.py::test_hourly_matches_atomic_per_link_and_month",
+   "tests/test_04_aggregate_mart.py::test_unassigned_records_are_only_dst_ambiguous",
+   "tests/test_04_aggregate_mart.py::test_no_record_vs_zero_speed_distinguished",
+   "tests/test_04_aggregate_mart.py::test_rollup_from_hourly_equals_atomic",
+   "tests/test_04_aggregate_mart.py::test_std_from_components_matches_atomic",
+   "tests/test_04_aggregate_mart.py::test_join_preserves_rows_and_grain",
+   "tests/test_04_aggregate_mart.py::test_mart_weather_equals_weather_fact"
+  ],
+  "failed": []
+ }
+}

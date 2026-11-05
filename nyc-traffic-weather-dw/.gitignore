@@ -1,0 +1,13 @@
+# Code + data deu duoc dua len git (data ~193 MB, moi file < 6 MB).
+# Bo qua: ban rollback, file tam, cache, file DuckDB (chua duong dan tuyet doi cua may - tao lai bang: python -I scripts/run.py 5)
+*.prev
+*.prev/
+*.tmp
+*.tmp/
+data/nyc_dw.duckdb
+*.duckdb.wal
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/

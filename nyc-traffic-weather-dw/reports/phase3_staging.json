@@ -1,0 +1,284 @@
+{
+ "batch_id": "phase3-20261102T101958Z",
+ "dst_hours": {
+  "amb_date": "2025-11-02",
+  "amb_hour": 1,
+  "nonexist_date": "2025-03-09",
+  "nonexist_hour": 2
+ },
+ "traffic": {
+  "n": 12714844,
+  "n_bk": 12714844,
+  "amb": 2468,
+  "nonex": 0,
+  "utc_null": 2468,
+  "valid": 9911819,
+  "stuck_rows": 10753,
+  "links": 124,
+  "off_min": -300,
+  "off_max": -240
+ },
+ "traffic_invalid_reason": {
+  "VALID": 9911819,
+  "speed_zero": 2802797,
+  "speed_zero_tt_positive": 120,
+  "speed_gt_max": 108
+ },
+ "traffic_offset_by_month": {
+  "2025-01": [
+   -300,
+   -300
+  ],
+  "2025-02": [
+   -300,
+   -300
+  ],
+  "2025-03": [
+   -300,
+   -240
+  ],
+  "2025-04": [
+   -240,
+   -240
+  ],
+  "2025-05": [
+   -240,
+   -240
+  ],
+  "2025-06": [
+   -240,
+   -240
+  ],
+  "2025-07": [
+   -240,
+   -240
+  ],
+  "2025-08": [
+   -240,
+   -240
+  ],
+  "2025-09": [
+   -240,
+   -240
+  ],
+  "2025-10": [
+   -240,
+   -240
+  ],
+  "2025-11": [
+   -300,
+   -240
+  ],
+  "2025-12": [
+   -300,
+   -300
+  ]
+ },
+ "dst_spot_check": [
+  [
+   "2025-03-09 01:53:07",
+   "2025-03-09 06:53:07+00:00",
+   "-300"
+  ],
+  [
+   "2025-03-09 01:58:06",
+   "2025-03-09 06:58:06+00:00",
+   "-300"
+  ],
+  [
+   "2025-03-09 03:03:06",
+   "2025-03-09 07:03:06+00:00",
+   "-240"
+  ],
+  [
+   "2025-03-09 03:08:06",
+   "2025-03-09 07:08:06+00:00",
+   "-240"
+  ]
+ ],
+ "road_link": {
+  "links": 124,
+  "with_rep_point": 124,
+  "links_with_bad_tokens": 52,
+  "bad_tokens_total": 53,
+  "points_far_dropped": 6,
+  "links_far_dropped": 6,
+  "geometry_versions_max": 1,
+  "borough_versions_max": 1,
+  "links_name_corrupted": 2,
+  "links_sharing_geometry": [
+   [
+    "4456477",
+    "4456481",
+    "MDE S TBB EXIT RAMP - QUEENS ANCHORAGE"
+   ],
+   [
+    "4456481",
+    "4456477",
+    "TBB S MANHATTAN LIFT SPAN - QUEENS ANCHORAGE"
+   ],
+   [
+    "4616196",
+    "4616210",
+    "MLK S - SIE E WALKER STREET - WOOLEY AVENUE"
+   ],
+   [
+    "4616210",
+    "4616196",
+    "MLK S - SIE W WALKER STREET - RICHMOND AVENUE"
+   ]
+  ],
+  "length_km_valid": {
+   "count": 124.0,
+   "mean": 1.816,
+   "std": 0.746,
+   "min": 0.319,
+   "25%": 1.192,
+   "50%": 1.82,
+   "75%": 2.29,
+   "max": 3.586
+  },
+  "longest": [
+   [
+    "4616213",
+    "WSE N ARDEN AVENUE - VICTORY BLVD",
+    3.586
+   ],
+   [
+    "4616201",
+    "WSE S VICTORY BOULEVARD - ARDEN AVENUE",
+    3.54
+   ],
+   [
+    "4616272",
+    "VWE S MP4.63 (Exit 6 Jamaica Ave) - MP2.66 (Exit 2 Roackaway Blvd)",
+    3.348
+   ],
+   [
+    "4616310",
+    "CBE AMSTERDAM AVE (L/LVL) - MORRIS AVE",
+    3.277
+   ],
+   [
+    "4616352",
+    "CIP S Hempstead Tpk - Laurelton Pkwy @ SSP",
+    3.246
+   ]
+  ]
+ },
+ "mapping": {
+  "links_mapped": 124,
+  "cells_used": 16,
+  "distance_km": {
+   "count": 124.0,
+   "mean": 4.27,
+   "std": 1.22,
+   "min": 0.83,
+   "25%": 3.57,
+   "50%": 4.41,
+   "75%": 5.1,
+   "max": 6.75
+  },
+  "far": 1,
+  "far_links": [
+   [
+    "4616319",
+    6.747
+   ]
+  ],
+  "cells_touched": {
+   "1": 84,
+   "2": 39,
+   "3": 1
+  },
+  "api_checked": true,
+  "api_agree": 114,
+  "api_disagree": [
+   [
+    "4362251",
+    "ifs_40.7381_-73.7872",
+    "ifs_40.8084_-73.7642",
+    5.199
+   ],
+   [
+    "4616196",
+    "ifs_40.5975_-74.0877",
+    "ifs_40.6678_-74.1927",
+    5.848
+   ],
+   [
+    "4616210",
+    "ifs_40.5975_-74.0877",
+    "ifs_40.6678_-74.1927",
+    5.848
+   ],
+   [
+    "4616216",
+    "ifs_40.5975_-74.0877",
+    "ifs_40.6678_-74.1927",
+    5.835
+   ],
+   [
+    "4616247",
+    "ifs_40.8084_-73.8921",
+    "ifs_40.8787_-73.8691",
+    5.287
+   ],
+   [
+    "4616250",
+    "ifs_40.8084_-73.8921",
+    "ifs_40.8787_-73.8691",
+    5.281
+   ],
+   [
+    "4616252",
+    "ifs_40.8084_-73.8921",
+    "ifs_40.8787_-73.8691",
+    3.977
+   ],
+   [
+    "4616257",
+    "ifs_40.6678_-73.9377",
+    "ifs_40.7381_-74.0425",
+    5.982
+   ],
+   [
+    "4616328",
+    "ifs_40.7381_-73.9149",
+    "ifs_40.6678_-73.9377",
+    5.624
+   ],
+   [
+    "4616339",
+    "ifs_40.6678_-73.9377",
+    "ifs_40.7381_-74.0425",
+    5.951
+   ]
+  ],
+  "api_outside_set": 0
+ },
+ "weather_interval": {
+  "n": 140160,
+  "cells": 16,
+  "n_key": 140160,
+  "s": "2025-01-01 05:00:00+00:00",
+  "e": "2026-01-01 04:00:00+00:00",
+  "no_next": 0,
+  "nulls": 0
+ },
+ "weather_hourly_rows": 140928,
+ "weather_vs_previous_staging_mismatch": 0,
+ "checks": {
+  "traffic_rows_equal_raw": true,
+  "traffic_business_key_unique": true,
+  "dst_ambiguous_flagged_2468": true,
+  "dst_nonexistent_zero": true,
+  "utc_null_only_dst": true,
+  "utc_offsets_est_edt_only": true,
+  "all_124_links_rep_point": true,
+  "all_links_mapped": true,
+  "weather_intervals_16x8760": true,
+  "weather_no_nulls": true,
+  "weather_equals_previous_staging": true
+ }
+}

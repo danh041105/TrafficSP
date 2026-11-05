@@ -1,0 +1,49 @@
+# Nguon du lieu. Du lieu goc KHONG duoc sao chep vao du an o giai doan nay:
+# cac duong dan duoi day tro toi vi tri hien co (chi doc).
+nyc_dot:
+  dataset_id: i4gi-tjb9
+  title: DOT Traffic Speeds (NYC Open Data, Socrata)
+  portal_url: https://data.cityofnewyork.us/Transportation/DOT-Traffic-Speeds/i4gi-tjb9/about_data
+  api_endpoint: https://data.cityofnewyork.us/resource/i4gi-tjb9.csv
+  metadata_doc: https://data.cityofnewyork.us/api/views/i4gi-tjb9/files/cc7f3b15-58b7-46e3-94e7-4c5753c3a8b8  # metadata_trafficspeeds.pdf (ban luu Internet Archive 2025-08-27)
+  local_dir: D:/DE_dataset_sizing/nyc_dot_2025
+  file_glob: "2025-*.parquet"
+  extraction:
+    tool: Google Colab, tai theo tung ngay qua SODA API
+    where_pattern: "data_as_of >= 'YYYY-MM-DDT00:00:00' AND data_as_of < 'YYYY-MM-(DD+1)T00:00:00'"
+    order: "data_as_of,link_id"
+    per_day_check: "so dong tai ve = $select=count(*) cung $where"
+    run_date: 2026-10-31          # ngay chay Colab (theo nguoi dung)
+    drive_zip: D:/nyc_dot_2025-20261101T005301Z-1-001.zip
+  expected:
+    rows_2025: 12714844           # hop thoai Export tren cong NYC Open Data, loc data_as_of trong 2025
+    rows_all_time: 113211851      # cung nguon, ngay 2026-10-31
+  timestamp:
+    column: data_as_of
+    semantics: "Last time data was received from link (metadata PDF)"
+    source_timezone: America/New_York   # kiem chung bang du lieu: 0 ban ghi 02:00-02:59 cac ngay chuyen gio mua xuan 2022-2025
+    tz_marker_in_value: false
+
+open_meteo:
+  title: Open-Meteo Historical Weather API
+  docs_url: https://open-meteo.com/en/docs/historical-weather-api
+  api_endpoint: https://archive-api.open-meteo.com/v1/archive
+  model: ecmwf_ifs
+  request_timezone: GMT          # BAT BUOC: timezone=America/New_York tra offset co dinh -4h (sai 1 gio mua dong)
+  date_range: [2024-12-31, 2026-01-01]
+  variables: [temperature_2m, relative_humidity_2m, precipitation, snowfall, wind_speed_10m, wind_gusts_10m, weather_code]
+  raw_json_dir: D:/DE_dataset_sizing/data/raw/open_meteo/ecmwf_ifs     # 16 file JSON + _manifest.json
+  staging_parquet: D:/DE_dataset_sizing/data/staging/weather_ifs_2024-12-31_2026-01-01_utc.parquet
+  cell_list_csv: D:/DE_dataset_sizing/data/staging/dim_weather_location_ifs.csv
+  download_script: D:/DE_dataset_sizing/pipeline/download_openmeteo_ifs_2025.py
+
+reference_only:   # ket qua khao sat truoc, dung de doi chieu, KHONG phai nguon nap DW
+  link_geometry_survey: D:/DE_dataset_sizing/phase1/link_geometry_survey.csv
+  link_to_cell_probe: D:/DE_dataset_sizing/phase1/link_to_cell_by_model.csv
+  eda_numbers: D:/DE_dataset_sizing/eda/eda_numbers.json
+  assessment_doc: D:/DE_dataset_sizing/phase1/DANH_GIA_TICH_HOP_OPENMETEO_NYCDOT.md
+
+deprecated:
+  open_meteo_2025_fixed_offset:
+    path: D:/DE_dataset_sizing/open_meteo_2025
+    reason: "Tai voi timezone=America/New_York -> offset co dinh -4h, lech 1 gio mua dong. Khong dung."

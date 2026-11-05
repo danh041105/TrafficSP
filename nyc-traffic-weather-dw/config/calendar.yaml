@@ -1,0 +1,27 @@
+# Lich phan tich (D-13, D-14 da duyet)
+holidays_2025:          # US federal holidays 2025 - nguon: U.S. Office of Personnel Management (opm.gov/policy-data-oversight/pay-leave/federal-holidays)
+  2025-01-01: New Year's Day
+  2025-01-20: Birthday of Martin Luther King, Jr.
+  2025-02-17: Washington's Birthday
+  2025-05-26: Memorial Day
+  2025-06-19: Juneteenth National Independence Day
+  2025-07-04: Independence Day
+  2025-09-01: Labor Day
+  2025-10-13: Columbus Day
+  2025-11-11: Veterans Day
+  2025-11-27: Thanksgiving Day
+  2025-12-25: Christmas Day
+day_parts:              # quy tac phan tich (khong phai dinh nghia chinh thuc), gio New York
+  - {name: "Đêm", from: 0, to: 5}
+  - {name: "Cao điểm sáng", from: 6, to: 9}
+  - {name: "Ban ngày", from: 10, to: 14}
+  - {name: "Cao điểm chiều", from: 15, to: 18}
+  - {name: "Tối", from: 19, to: 23}
+free_flow:              # D-18: toc do thong thoang tham chieu cua tung link
+  percentile: 0.85
+  local_hours: [22, 23, 0, 1, 2, 3, 4, 5]
+  dry: {precipitation_mm_lt: 0.1, snowfall_cm_eq: 0}
+  min_readings: 100
+traffic_status:         # ty le toc do / free_flow (quy tac phan tich)
+  congested_lt: 0.5
+  slow_lt: 0.8

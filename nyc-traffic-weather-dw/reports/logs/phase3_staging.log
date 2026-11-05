@@ -1,0 +1,14 @@
+2026-11-02 17:18:04,477 INFO batch phase3-20261102T101804Z
+2026-11-02 17:18:04,628 INFO DST {'amb_date': '2025-11-02', 'amb_hour': 1, 'nonexist_date': '2025-03-09', 'nonexist_hour': 2}
+2026-11-02 17:18:31,800 INFO batch phase3-20261102T101831Z
+2026-11-02 17:18:31,971 INFO DST {'amb_date': '2025-11-02', 'amb_hour': 1, 'nonexist_date': '2025-03-09', 'nonexist_hour': 2}
+2026-11-02 17:19:24,523 INFO traffic {'n': 12714844, 'n_bk': 12714844, 'amb': 2468, 'nonex': 0, 'utc_null': 2468, 'valid': 9911819, 'stuck_rows': 10753, 'links': 124, 'off_min': -300, 'off_max': -240}
+2026-11-02 17:19:30,015 INFO road_link {'links': 124, 'links_with_bad_tokens': 52, 'points_far_dropped': 6}
+2026-11-02 17:19:30,017 INFO mapping {1: 84, 2: 39, 3: 1}
+2026-11-02 17:19:58,796 INFO batch phase3-20261102T101958Z
+2026-11-02 17:19:58,944 INFO DST {'amb_date': '2025-11-02', 'amb_hour': 1, 'nonexist_date': '2025-03-09', 'nonexist_hour': 2}
+2026-11-02 17:20:52,134 INFO traffic {'n': 12714844, 'n_bk': 12714844, 'amb': 2468, 'nonex': 0, 'utc_null': 2468, 'valid': 9911819, 'stuck_rows': 10753, 'links': 124, 'off_min': -300, 'off_max': -240}
+2026-11-02 17:20:58,512 INFO road_link {'links': 124, 'links_with_bad_tokens': 52, 'points_far_dropped': 6}
+2026-11-02 17:20:58,512 INFO mapping {1: 84, 2: 39, 3: 1}
+2026-11-02 17:21:02,034 INFO weather {'n': 140160, 'cells': 16, 'n_key': 140160, 's': '2025-01-01 05:00:00+00:00', 'e': '2026-01-01 04:00:00+00:00', 'no_next': 0, 'nulls': 0}
+2026-11-02 17:21:02,041 INFO PHASE 3 OK {}

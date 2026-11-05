@@ -1,0 +1,11 @@
+﻿link_id,link_name,borough,avg_speed_mph,n_valid_readings,free_flow_mph
+4616340,BQE N Atlantic Ave - MAN Bridge Manhattan Side,Manhattan,5.39,72799.0,9.9
+4616357,Belt Pkwy W JFK Expressway - VWE N Jamaica Ave,Queens,9.89,101629.0,22.4
+4616276,VWE S MP2.66 (Exit 2 Rockaway Blvd) - Belt Pkwy E 182nd St,Queens,10.9,96909.0,19.9
+4456494,West St S Spring St - BBT Manhattan Portal outbound,Manhattan,14.46,34339.0,18.6
+4616272,VWE S MP4.63 (Exit 6 Jamaica Ave) - MP2.66 (Exit 2 Roackaway Blvd),Queens,16.89,99937.0,41.0
+4616342,BKN Bridge Manhattan Side - FDR N Catherine Slip,Manhattan,17.72,94952.0,34.2
+4616259,VWE S MP6.39 (Exit 11 Jewel Ave) - MP4.63 (Exit 6 Jamaica Ave),Queens,18.12,97385.0,43.5
+4329472,LINCOLN TUNNEL E SOUTH TUBE - NJ - NY,Manhattan,18.49,69778.0,33.6
+4616223,GOW N 9TH STREET - ATLANTIC AVENUE,Brooklyn,19.36,73280.0,46.6
+4620314,MDE S HARLEM RIVER PARK - GWB W AMSTERDAM AVENUE UPPER LEVEL,Bronx,20.09,97137.0,38.5

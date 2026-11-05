@@ -1,0 +1,20 @@
+project: nyc-traffic-weather-dw
+study_period_local:            # ky nghien cuu theo lich New York
+  start: 2025-01-01T00:00:00
+  end_exclusive: 2026-01-01T00:00:00
+timezones:
+  source_local: America/New_York
+  warehouse: UTC               # moi khoa thoi gian trong DW la UTC; gio dia phuong la thuoc tinh
+paths:                         # tuong doi so voi thu muc du an
+  raw_manifest: data/raw/manifest
+  staging: data/staging
+  dw_dimensions: data/dw/dimensions
+  dw_facts: data/dw/facts
+  mart: data/mart
+  quality: data/quality
+  reports: reports
+storage:
+  format: parquet
+  compression: zstd
+  partition_facts_by: month_utc   # de xuat, cho xac nhan (docs/decisions.md)
+engine: duckdb                    # chua cai, cho xac nhan

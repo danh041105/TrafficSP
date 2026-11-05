@@ -1,0 +1,692 @@
+{
+ "generated_at": "2026-11-02T16:58:03+07:00",
+ "environment": {
+  "os": "Windows-10-10.0.19045-SP0",
+  "python": "3.11.0",
+  "python_exe": "C:\\Users\\Dell\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "packages": {
+   "pyarrow": "23.0.0",
+   "pandas": "2.3.0",
+   "numpy": "2.1.3",
+   "yaml": "6.0.2",
+   "duckdb": null,
+   "pytest": null,
+   "holidays": null,
+   "matplotlib": "3.10.0"
+  },
+  "git": "git version 2.50.1.windows.1",
+  "disk": {
+   "C:\\": {
+    "total_gb": 167.4,
+    "free_gb": 9.1
+   },
+   "D:\\": {
+    "total_gb": 172.0,
+    "free_gb": 51.5
+   }
+  }
+ },
+ "nyc_dot": {
+  "dir": "D:/DE_dataset_sizing/nyc_dot_2025",
+  "files": [
+   {
+    "file": "2025-01.parquet",
+    "bytes": 4545221,
+    "rows": 1079027,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-01-01 00:03:03",
+    "max_ts": "2025-01-31 23:58:10",
+    "rows_outside_file_month": 0,
+    "links": 122,
+    "nulls": 0
+   },
+   {
+    "file": "2025-02.parquet",
+    "bytes": 4148570,
+    "rows": 975744,
+    "row_groups": 1,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-02-01 00:03:03",
+    "max_ts": "2025-02-28 23:58:09",
+    "rows_outside_file_month": 0,
+    "links": 121,
+    "nulls": 0
+   },
+   {
+    "file": "2025-03.parquet",
+    "bytes": 5072450,
+    "rows": 1078263,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-03-01 00:03:03",
+    "max_ts": "2025-03-31 23:58:11",
+    "rows_outside_file_month": 0,
+    "links": 121,
+    "nulls": 0
+   },
+   {
+    "file": "2025-04.parquet",
+    "bytes": 4208584,
+    "rows": 1037270,
+    "row_groups": 1,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-04-01 00:03:03",
+    "max_ts": "2025-04-30 23:59:03",
+    "rows_outside_file_month": 0,
+    "links": 121,
+    "nulls": 0
+   },
+   {
+    "file": "2025-05.parquet",
+    "bytes": 5009527,
+    "rows": 1066866,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-05-01 00:03:03",
+    "max_ts": "2025-05-31 23:59:08",
+    "rows_outside_file_month": 0,
+    "links": 120,
+    "nulls": 0
+   },
+   {
+    "file": "2025-06.parquet",
+    "bytes": 4773245,
+    "rows": 1005175,
+    "row_groups": 1,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-06-01 00:03:03",
+    "max_ts": "2025-06-30 23:58:09",
+    "rows_outside_file_month": 0,
+    "links": 123,
+    "nulls": 0
+   },
+   {
+    "file": "2025-07.parquet",
+    "bytes": 4571228,
+    "rows": 1084419,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-07-01 00:03:07",
+    "max_ts": "2025-07-31 23:59:03",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   },
+   {
+    "file": "2025-08.parquet",
+    "bytes": 4613860,
+    "rows": 1095253,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-08-01 00:03:03",
+    "max_ts": "2025-08-31 23:58:11",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   },
+   {
+    "file": "2025-09.parquet",
+    "bytes": 4430713,
+    "rows": 1058347,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-09-01 00:04:03",
+    "max_ts": "2025-09-30 23:58:09",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   },
+   {
+    "file": "2025-10.parquet",
+    "bytes": 4531623,
+    "rows": 1078806,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-10-01 00:02:12",
+    "max_ts": "2025-10-31 23:59:09",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   },
+   {
+    "file": "2025-11.parquet",
+    "bytes": 5035438,
+    "rows": 1061273,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-11-01 00:03:03",
+    "max_ts": "2025-11-30 23:58:11",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   },
+   {
+    "file": "2025-12.parquet",
+    "bytes": 4484354,
+    "rows": 1094401,
+    "row_groups": 2,
+    "created_by": "parquet-cpp-arrow version 23.0.1",
+    "min_ts": "2025-12-01 00:02:13",
+    "max_ts": "2025-12-31 23:58:09",
+    "rows_outside_file_month": 0,
+    "links": 124,
+    "nulls": 0
+   }
+  ],
+  "n_files": 12,
+  "rows_total": 12714844,
+  "rows_expected": 12714844,
+  "rows_match_expected": true,
+  "schema_identical_across_files": true,
+  "schema": "id: string\nspeed: double\ntravel_time: int64\nstatus: string\ndata_as_of: timestamp[ns]\nlink_id: string\nlink_points: string\nencoded_poly_line: string\nencoded_poly_line_lvls: string\nowner: string\ntranscom_id: string\nborough: string\nlink_name: string",
+  "bytes_total": 55424813,
+  "ts_tz": "None",
+  "ts_min": "2025-01-01 00:03:03",
+  "ts_max": "2025-12-31 23:58:09",
+  "dup_business_key_link_id_data_as_of": 0,
+  "dup_full_rows": 0,
+  "nulls_by_column": {
+   "id": 0,
+   "link_id": 0,
+   "data_as_of": 0,
+   "speed": 0,
+   "travel_time": 0,
+   "status": 0,
+   "borough": 0,
+   "owner": 0,
+   "link_name": 0,
+   "link_points": 0,
+   "transcom_id": 0
+  },
+  "distinct": {
+   "id": 124,
+   "link_id": 124,
+   "transcom_id": 124,
+   "status": 2,
+   "borough": 5,
+   "owner": 7,
+   "link_name": 126,
+   "link_points": 122
+  },
+  "id_vs_link": {
+   "id_equals_link_id_rows": 0,
+   "links_with_1_id": 124,
+   "ids_with_1_link": 124
+  },
+  "transcom_equals_link_id_rows": 12714844,
+  "status_values": {
+   "0": 9100239,
+   "-101": 3614605
+  },
+  "borough_values": {
+   "Queens": 3845713,
+   "Manhattan": 2646852,
+   "Staten Island": 2601681,
+   "Bronx": 2494629,
+   "Brooklyn": 1125969
+  },
+  "links_per_borough": {
+   "Bronx": 24,
+   "Brooklyn": 12,
+   "Manhattan": 26,
+   "Queens": 37,
+   "Staten Island": 25
+  },
+  "borough_per_link_max": 1,
+  "link_points_versions_per_link_max": 1,
+  "link_name_versions_per_link_max": 2,
+  "speed": {
+   "min": 0.0,
+   "max": 119.3,
+   "zero": 2802917,
+   "gt100": 108,
+   "neg": 0
+  },
+  "travel_time": {
+   "min": -52,
+   "max": 14896,
+   "zero": 2802725,
+   "neg": 72
+  },
+  "valid_share_rule_0_100_tt": 0.7795,
+  "dst_2025-03-09": {
+   "h01": 1452,
+   "h02": 0,
+   "h03": 1452
+  },
+  "dst_2025-11-02": {
+   "h00": 1488,
+   "h01": 2468,
+   "h02": 1488
+  },
+  "links_first_seen_after_jan10": [
+   [
+    "4616318",
+    "2025-06-09 13:09:03",
+    "2025-12-31 23:58:03"
+   ],
+   [
+    "4616319",
+    "2025-06-09 13:09:03",
+    "2025-12-31 23:58:03"
+   ]
+  ],
+  "links_last_seen_before_dec20": []
+ },
+ "open_meteo": {
+  "raw_dir": "D:/DE_dataset_sizing/data/raw/open_meteo/ecmwf_ifs",
+  "raw_files": 16,
+  "raw_bytes_total": 6821337,
+  "raw_files_info": [
+   {
+    "file": "ifs_40.5272_-74.2373.json",
+    "bytes": 426783,
+    "lat": 40.52724,
+    "lon": -74.237274,
+    "elevation": 20.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.5975_-73.9604.json",
+    "bytes": 428182,
+    "lat": 40.597538,
+    "lon": -73.96039,
+    "elevation": 8.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.5975_-74.0877.json",
+    "bytes": 427331,
+    "lat": 40.597538,
+    "lon": -74.08771,
+    "elevation": 27.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.5975_-74.2150.json",
+    "bytes": 426596,
+    "lat": 40.597538,
+    "lon": -74.215,
+    "elevation": 1.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.6678_-73.6827.json",
+    "bytes": 427371,
+    "lat": 40.667835,
+    "lon": -73.68274,
+    "elevation": 21.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.6678_-73.8102.json",
+    "bytes": 427086,
+    "lat": 40.667835,
+    "lon": -73.81021,
+    "elevation": 9.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.6678_-73.9377.json",
+    "bytes": 426488,
+    "lat": 40.667835,
+    "lon": -73.93768,
+    "elevation": 39.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.6678_-74.1927.json",
+    "bytes": 426191,
+    "lat": 40.667835,
+    "lon": -74.19266,
+    "elevation": 8.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.7381_-73.7872.json",
+    "bytes": 425522,
+    "lat": 40.738136,
+    "lon": -73.78723,
+    "elevation": 23.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.7381_-73.9149.json",
+    "bytes": 425040,
+    "lat": 40.738136,
+    "lon": -73.91489,
+    "elevation": 32.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.7381_-74.0425.json",
+    "bytes": 425370,
+    "lat": 40.738136,
+    "lon": -74.04254,
+    "elevation": 2.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.8084_-73.7642.json",
+    "bytes": 426089,
+    "lat": 40.808434,
+    "lon": -73.76422,
+    "elevation": 0.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.8084_-73.8921.json",
+    "bytes": 425703,
+    "lat": 40.808434,
+    "lon": -73.89206,
+    "elevation": 6.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.8084_-74.0199.json",
+    "bytes": 425566,
+    "lat": 40.808434,
+    "lon": -74.0199,
+    "elevation": 8.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.8787_-73.8691.json",
+    "bytes": 426328,
+    "lat": 40.878735,
+    "lon": -73.86914,
+    "elevation": 27.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   },
+   {
+    "file": "ifs_40.8787_-73.9972.json",
+    "bytes": 425691,
+    "lat": 40.878735,
+    "lon": -73.99716,
+    "elevation": 9.0,
+    "timezone": "GMT",
+    "utc_offset_seconds": 0,
+    "hours": 8808,
+    "first": "2024-12-31T00:00",
+    "last": "2026-01-01T23:00",
+    "vars": [
+     "temperature_2m",
+     "relative_humidity_2m",
+     "precipitation",
+     "snowfall",
+     "wind_speed_10m",
+     "wind_gusts_10m",
+     "weather_code"
+    ]
+   }
+  ],
+  "raw_units": {
+   "time": "iso8601",
+   "temperature_2m": "°C",
+   "relative_humidity_2m": "%",
+   "precipitation": "mm",
+   "snowfall": "cm",
+   "wind_speed_10m": "km/h",
+   "wind_gusts_10m": "km/h",
+   "weather_code": "wmo code"
+  },
+  "manifest_entries": 16,
+  "manifest_all_same_cell": true,
+  "manifest_downloaded_utc": [
+   "2026-11-01"
+  ],
+  "staging_path": "D:/DE_dataset_sizing/data/staging/weather_ifs_2024-12-31_2026-01-01_utc.parquet",
+  "staging_rows": 140928,
+  "staging_schema": "weather_location_id: string\ntemperature_2m: double\nrelative_humidity_2m: int64\nprecipitation: double\nsnowfall: double\nwind_speed_10m: double\nwind_gusts_10m: double\nweather_code: int64\ntime_utc: timestamp[ns, tz=UTC]\nmodel: string\ngrid_lat: double\ngrid_lon: double\nelevation: double",
+  "staging_cells": 16,
+  "staging_rows_per_cell": [
+   8808
+  ],
+  "staging_time_min": "2024-12-31 00:00:00+00:00",
+  "staging_time_max": "2026-01-01 23:00:00+00:00",
+  "staging_nulls": {
+   "weather_location_id": 0,
+   "temperature_2m": 0,
+   "relative_humidity_2m": 0,
+   "precipitation": 0,
+   "snowfall": 0,
+   "wind_speed_10m": 0,
+   "wind_gusts_10m": 0,
+   "weather_code": 0,
+   "time_utc": 0,
+   "model": 0,
+   "grid_lat": 0,
+   "grid_lon": 0,
+   "elevation": 0
+  },
+  "staging_dup_key": 0,
+  "raw_vs_staging_rows_only_one_side": 0,
+  "raw_vs_staging_value_mismatch": {
+   "temperature_2m": 0,
+   "relative_humidity_2m": 0,
+   "precipitation": 0,
+   "snowfall": 0,
+   "wind_speed_10m": 0,
+   "wind_gusts_10m": 0,
+   "weather_code": 0
+  },
+  "weather_code_values": [
+   0,
+   1,
+   2,
+   3,
+   45,
+   51,
+   53,
+   55,
+   61,
+   63,
+   65,
+   71,
+   73,
+   75,
+   80,
+   81,
+   82,
+   85,
+   86,
+   95
+  ]
+ }
+}
