@@ -80,8 +80,9 @@ services:
     hostname: airflow-scheduler
     command: scheduler
     environment:
+      - KAFKA_BOOTSTRAP=kafka:29092
       - SPARK_LOCAL_HOSTNAME=airflow-scheduler   # executor trên worker gọi ngược về driver bằng tên này
-    volumes:                                     # khối này THAY THẾ volumes của anchor nên phải ghi lại đủ
+    volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
@@ -143,6 +144,25 @@ services:
       - ./minio.license:/minio.license:ro
     networks:
       - traffic-net
+  
+  minio-init:
+    image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z
+    container_name: traffic-minio-aistor-init
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do
+        echo 'Chờ MinIO...'; sleep 2;
+      done;
+      mc mb --ignore-existing local/lakehouse;
+      "
+    restart: "no"
+    networks:
+      - traffic-net
 
 # Kafka: KRaft 1 node (broker + controller), không cần Zookeeper
   kafka:
@@ -183,6 +203,43 @@ services:
     networks:
       - traffic-net
 
+  # Kafka init: tự tạo topic
+  kafka-init:
+    image: apache/kafka:4.1.0
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic traffic_raw --partitions 4 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic weather_raw --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list
+      "
+    restart: "no"
+    networks:
+      - traffic-net
+      
+  # Producer: chạy tay theo từng giai đoạn, không tự chạy khi docker compose up
+  producer:
+    build:
+      context: ./dockerfiles
+      dockerfile: producer.dockerfile
+    image: ad/producer:3.10
+    profiles: ["tools"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:29092
+      - PYTHONPATH=/app/jobs
+    volumes:
+      - ./jobs:/app/jobs:ro
+      - ./scripts:/app/scripts:ro
+      - ./data:/app/data:ro
+    networks:
+      - traffic-net
+
   # Kafka UI: xem topic, message, consumer group
   kafka-ui:
     image: kafbat/kafka-ui:v1.3.0
@@ -212,6 +269,7 @@ services:
       /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
       --host spark-master --port 7077 --webui-port 8080
     environment:
+      - KAFKA_BOOTSTRAP=kafka:29092
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
@@ -324,8 +382,8 @@ networks:
     driver: bridge
 volumes:
   clickhouse_data:
-    name: clickhouse_data
+    name: traffic_clickhouse_data
   postgres_data:
-    name: postgres_data
+    name: traffic_postgres_data
   kafka_data:
-    name: kafka_data
+    name: traffic_kafka_data

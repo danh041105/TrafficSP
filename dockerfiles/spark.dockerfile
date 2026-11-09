@@ -5,6 +5,8 @@ ARG ICEBERG_VERSION=1.10.1
 ARG HADOOP_AWS_VERSION=3.3.4
 ARG AWS_SDK_VERSION=1.12.262
 ARG POSTGRES_JDBC_VERSION=42.7.4
+ARG KAFKA_CLIENTS_VERSION=3.4.1
+ARG COMMONS_POOL2_VERSION=2.11.1
 
 USER root
 
@@ -18,6 +20,12 @@ ADD --chmod=644 https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle
 
 # Driver JDBC cho Iceberg JDBC Catalog trên PostgreSQL
 ADD --chmod=644 https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar /opt/spark/jars/
+
+# Kafka - Spark Structured Streaming
+ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.0/spark-sql-kafka-0-10_2.12-3.5.0.jar /opt/spark/jars/
+ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.5.0/spark-token-provider-kafka-0-10_2.12-3.5.0.jar /opt/spark/jars/
+ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/${KAFKA_CLIENTS_VERSION}/kafka-clients-${KAFKA_CLIENTS_VERSION}.jar /opt/spark/jars/
+ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar /opt/spark/jars/
 
 RUN mkdir -p /opt/spark/jobs && chown -R spark:spark /opt/spark/jobs
 
