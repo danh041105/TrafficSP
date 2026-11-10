@@ -1,5 +1,7 @@
 # file này giúp định nghĩa các field sử dụng trong message Kafka dưới dạng json
 # Các trường trong traffic được sử dụng
+
+# ----------------- Bronze ----------------------
 TRAFFIC_FIELDS = {
     "id": "string",
     "speed": "double",
@@ -47,6 +49,69 @@ METADATA_FIELDS = {
     "kafka_offset": "bigint",
 }
 
+# ----------------- Silver ----------------------
+SILVER_TRAFFIC_FIELDS = {
+    "id": "bigint",
+    "link_id": "bigint",
+    "transcom_id": "string",
+    "traffic_utc": "timestamp",      # data_as_of (giờ New York) đã đổi sang UTC
+    "date": "date",                   # ngày theo giờ New York
+    "hour": "int",                    # từ 0h đến 23h
+    "day_of_week": "int",            # thứ trong tuần theo giờ New York
+    "speed": "double",                # mph
+    "travel_time": "bigint",          # giây
+    "status": "int",
+    "encoded_poly_line": "string",
+    "encoded_poly_line_lvls": "string",
+    "run_id": "string",               # test / gd1 / gd2, giữ lại để truy vết
+    "processed_ts": "timestamp",      # lúc job Silver ghi dòng này
+}
+
+SILVER_WEATHER_FIELDS = {
+    "cell_id": "string",
+    "weather_utc": "timestamp",       
+    "latitude": "double",             
+    "longitude": "double",
+    "temperature_2m": "double",       # °C
+    "relative_humidity_2m": "int",    # %
+    "precipitation": "double",        # mm
+    "snowfall": "double",             # cm
+    "wind_speed_10m": "double",       # km/h
+    "wind_gusts_10m": "double",       # km/h
+    "weather_code": "int",            # mã WMO
+    "run_id": "string",
+    "processed_ts": "timestamp",
+}
+
+SILVER_LINK_INFO_FIELDS = {
+    "link_id": "bigint",
+    "link_name": "string",
+    "borough": "string",
+    "link_points": "string",          # giữ nguyên chuỗi gốc để sau vẽ đường trên bản đồ
+    "latitude": "double",             # trung vị các điểm trong link_points
+    "longitude": "double",
+    "cell_id": "string",              # ô thời tiết gần nhất
+    "cell_distance_km": "double",     # khoảng cách tới tâm ô, sẽ được tính bằng khoảng cách Haversine
+    "processed_ts": "timestamp",
+}
+
+# Nhật ký các lần chạy job Bronze -> Silver.
+# Một dòng = 1 lần chạy x 1 nguồn x 1 ngày dữ liệu x 1 kafka_partition mà lần chạy đó đọc được.
+# Chỉ ghi lần chạy biến đổi dữ liệu; compaction Bronze không ghi vào đây
+SILVER_INGEST_AUDIT_FIELDS = {
+    "job_run_id": "string",        # mã của lần chạy job Silver (uuid)
+    "source": "string",            # "traffic" / "weather"
+    "event_date": "date",          # traffic: ngày theo giờ New York; weather: ngày theo UTC
+    "kafka_partition": "int",
+    "min_offset": "bigint",
+    "max_offset": "bigint",
+    "min_ingest_ts": "timestamp",
+    "max_ingest_ts": "timestamp",
+    "n_bronze_rows": "bigint",     # số dòng đọc từ Bronze
+    "n_duplicates": "bigint",      # số dòng trước khử trùng − số dòng ngay sau khử trùng
+    "n_silver_rows": "bigint",     # số dòng ghi vào Silver
+    "processed_ts": "timestamp",   
+}
 # Producer: dùng field_names() để chọn cột gửi đi.
 # Spark:    dùng to_ddl() làm schema cho from_json.
 

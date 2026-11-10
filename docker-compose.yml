@@ -332,7 +332,7 @@ services:
       - traffic-net
   # Grafana: Monitoring and Alerting
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.2.4-slim
     container_name: traffic-grafana
     hostname: grafana
     ports:

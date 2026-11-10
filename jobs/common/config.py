@@ -24,11 +24,20 @@ REPLAY_MONTHS = range(10, 13)
 
 # Lakehouse(MinIO + Iceberg):
 # namespace nó tương tự như schema trong database được dùng để tổ chức và quản lý các table và view trong iceberg
-BRONZE_NAMESPACE = "lakehouse.bronze"
 
+# Bronze
+BRONZE_NAMESPACE = "lakehouse.bronze"
 # các table trong namespace
 BRONZE_TRAFFIC_TABLE = "lakehouse.bronze.traffic_raw"
 BRONZE_WEATHER_TABLE = "lakehouse.bronze.weather_raw"
+
+# Silver
+SILVER_NAMESPACE = "lakehouse.silver"
+SILVER_TRAFFIC_CLEANED = "lakehouse.silver.traffic_cleaned"
+SILVER_WEATHER_CLEANED = "lakehouse.silver.weather_cleaned"
+SILVER_LINK_INFO = "lakehouse.silver.link_info"
+SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
+
 
 # ---------- Spark Streaming ----------
 # Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
