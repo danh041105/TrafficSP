@@ -376,6 +376,16 @@ services:
     networks:
       - traffic-net
 
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:26.2.4
+    ports:
+      - "127.0.0.1:8978:8978"
+    volumes:
+      - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
 networks:
   traffic-net:
     name: traffic-net
@@ -387,3 +397,4 @@ volumes:
     name: traffic_postgres_data
   kafka_data:
     name: traffic_kafka_data
+  cloudbeaver_workspace:
