@@ -27,6 +27,9 @@ ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/spark/spark-token-prov
 ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/${KAFKA_CLIENTS_VERSION}/kafka-clients-${KAFKA_CLIENTS_VERSION}.jar /opt/spark/jars/
 ADD --chmod=644 https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar /opt/spark/jars/
 
+# Speed layer: driver ghi ClickHouse qua HTTP trong foreachBatch, cần pandas cho toPandas()
+RUN pip install --no-cache-dir "clickhouse-connect>=0.8,<0.9" "pandas==2.2.3" "pyarrow==17.0.0"
+
 RUN mkdir -p /opt/spark/jobs && chown -R spark:spark /opt/spark/jobs
 
 USER spark

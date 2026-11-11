@@ -237,6 +237,7 @@ services:
       - ./jobs:/app/jobs:ro
       - ./scripts:/app/scripts:ro
       - ./data:/app/data:ro
+      - ./logs:/app/logs          # tóm tắt chạy producer (--summary-file)
     networks:
       - traffic-net
 
@@ -273,11 +274,17 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
+      # Speed layer (driver chạy trên spark-master) ghi ClickHouse qua HTTP
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - PYTHONPATH=/opt/spark/jobs
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     ports:
       - "8090:8080" # Spark Master UI
+      - "4041:4040" # Spark UI của job submit từ spark-master (4040 đã dành cho Airflow)
       - "7077:7077"
     restart: unless-stopped
     networks:

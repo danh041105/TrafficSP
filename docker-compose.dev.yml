@@ -1,0 +1,42 @@
+# Override cho máy DEV KHÔNG có MinIO (image AIStor cần minio.license; MinIO bản cộng đồng đã ngừng phát hành image).
+#   - Không khởi động minio / minio-init.
+#   - Iceberg warehouse + checkpoint của Spark đặt trên volume dùng chung traffic_lakehouse_dev (/opt/lakehouse),
+#     gắn cho spark-master và các worker (driver và executor cùng thấy).
+#   - Spark chạy user root để ghi được vào volume.
+# Khởi động bộ tối thiểu:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d \
+#       postgresql kafka kafka-init clickhouse spark-master spark-worker-1
+
+services:
+  spark-master:
+    user: root
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:29092
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - PYTHONPATH=/opt/spark/jobs
+      - CHECKPOINT_ROOT=file:/opt/lakehouse/checkpoints
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+  spark-worker-1:
+    user: root
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+  spark-worker-2:
+    user: root
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+
+volumes:
+  lakehouse_dev:
+    name: traffic_lakehouse_dev
