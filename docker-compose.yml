@@ -353,7 +353,7 @@ services:
     container_name: traffic-clickhouse
     hostname: clickhouse
     environment:
-      - CLICKHOUSE_DB=anomaly
+      - CLICKHOUSE_DB=TrafficSP
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
