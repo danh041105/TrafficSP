@@ -112,6 +112,48 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "n_silver_rows": "bigint",     # số dòng ghi vào Silver
     "processed_ts": "timestamp",   
 }
+# Bản ghi traffic KHÔNG đưa vào traffic_cleaned (giờ DST mơ hồ/không tồn tại, thiếu khóa) - giữ lại để truy vết,
+# không xóa âm thầm. Dùng chung chính sách với Speed Layer (common/time_rules.py).
+SILVER_TRAFFIC_QUARANTINE_FIELDS = {
+    "link_id": "bigint",
+    "date": "date",                   # ngày theo giờ New York
+    "hour": "int",
+    "speed": "double",
+    "travel_time": "bigint",
+    "reason": "string",               # dst_ambiguous / dst_nonexistent / missing_key
+    "run_id": "string",
+    "kafka_partition": "int",
+    "kafka_offset": "bigint",
+    "processed_ts": "timestamp",
+}
+
+# ----------------- Gold (Batch View) ----------------------
+# Grain (link_id, window_start_utc) 5 phút; (link_id, hour_utc) 1 giờ. Chỉ lưu thành phần cộng được + min/max.
+GOLD_AGG_MEASURES = {
+    "n_records": "int",
+    "n_valid": "int",
+    "n_zero": "int",
+    "n_invalid_other": "int",
+    "sum_speed": "double",
+    "sum_speed_sq": "double",
+    "sum_travel_time": "bigint",
+    "min_speed": "double",
+    "max_speed": "double",
+}
+GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start": "timestamp", "window_end": "timestamp",
+                            **GOLD_AGG_MEASURES, "batch_run_id": "string", "computed_ts": "timestamp"}
+GOLD_TRAFFIC_HOURLY_FIELDS = {"link_id": "bigint", "hour_utc": "timestamp",
+                              **GOLD_AGG_MEASURES, "batch_run_id": "string", "computed_ts": "timestamp"}
+GOLD_LINK_BASELINE_FIELDS = {
+    "link_id": "bigint",
+    "free_flow_speed": "double",      # p85 tốc độ hợp lệ, lúc khô, 22:00-05:59 giờ New York (D-18)
+    "n_samples": "bigint",
+    "history_start": "date",
+    "history_end": "date",
+    "baseline_version": "string",
+    "computed_ts": "timestamp",
+}
+
 # Producer: dùng field_names() để chọn cột gửi đi.
 # Spark:    dùng to_ddl() làm schema cho from_json.
 
