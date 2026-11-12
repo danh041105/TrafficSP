@@ -6,3 +6,4 @@ docker-data/
 minio.license
 agent/
 .gitignore
+CLAUDE.md
