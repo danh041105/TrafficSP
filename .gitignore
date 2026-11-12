@@ -4,5 +4,7 @@ venv/
 __pycache__/
 docker-data/
 minio.license
+agent/
+.gitignore
 # Kết quả chạy/đối chiếu/benchmark sinh ra lúc chạy (producer summary, CSV export, docker stats)
 logs/
