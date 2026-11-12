@@ -110,7 +110,7 @@ CH "SELECT t_batch, status, published_at FROM lambda_handoff ORDER BY published_
 ```bash
 python -m pytest -q jobs/tests/test_streaming_rules.py                                   # unit test quy tắc
 $C run --rm producer python scripts/replay_producer.py --phase gd2 --start 2025-12-01T05:00 --end 2025-12-01T11:00 --speedup 720
-sleep 30
+sleep 90    # micro-batch đầu tiên sau khi Speed Layer vừa khởi động mất ~45–55 s (JVM + RocksDB khởi tạo)
 CH "SELECT count() FROM traffic_5min_rt FINAL WHERE window_start >= '2025-12-01 05:00:00'"   # > 0
 CH "SELECT max(event_time) FROM traffic_latest FINAL"                                        # ~ 2025-12-01 10:5x
 ```

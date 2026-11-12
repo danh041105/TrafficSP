@@ -108,6 +108,18 @@ Mọi view đọc qua `FINAL`, không dựa vào merge nền để khử trùng.
 
 Nếu tiến trình chết giữa chừng, T_batch chưa đổi nên view hợp nhất vẫn lấy realtime; chỉ cần chạy lại vì mọi bước đều idempotent (đã kiểm chứng bằng `--fail-at after_commit`).
 
+### ClickHouse và Trino
+
+Nhánh `dev` (commit `e782e9f`, `631f81e`) bổ sung **Trino 484** và CloudBeaver để truy vấn lakehouse Iceberg. Hai hệ thống chạy song song, mỗi bên một vai trò:
+
+| | Trino | ClickHouse |
+|---|---|---|
+| Vai trò | Truy vấn ad-hoc / phân tích trên Iceberg (Bronze, Silver, Gold) | Serving tier của Lambda: dữ liệu realtime + view hợp nhất |
+| Dữ liệu | Toàn bộ lịch sử trên Iceberg | `traffic_latest`, `traffic_5min_rt`, `traffic_5min_batch`, `traffic_hourly`, `lambda_handoff`, ... |
+| Lý do | Đọc trực tiếp lakehouse, không cần chép dữ liệu | Ghi idempotent từng micro-batch (ReplacingMergeTree + dedup token), đọc độ trễ thấp |
+
+Speed Layer không ghi qua Trino. Lý do: Iceberg không có engine thay-thế-theo-khoá như ReplacingMergeTree, nên mỗi micro-batch sẽ phải MERGE/commit snapshot riêng, tạo nhiều file nhỏ và tăng độ trễ.
+
 ## 6. Quyết định kỹ thuật chính
 
 | Quyết định | Lý do |
