@@ -46,9 +46,23 @@ def parsed_traffic_time(df: DataFrame) -> DataFrame:
     return new_df
 
 
-# Bỏ giờ lặp 01:00-01:59 ngày 02/11/2025 (giờ New York) khi hết giờ mùa hè
+# Biểu thức: bản ghi rơi vào giờ DST mơ hồ (lùi giờ, vd 01:00-01:59 ngày 02/11/2025) hoặc không tồn tại (tiến giờ).
+# Mốc tính từ tzdata (common/time_rules.py) - dùng chung với Speed Layer, không viết cứng ngày.
+def dst_flag(date_col: str = "date", hour_col: str = "hour", years=(2025,)):
+    from common.time_rules import dst_local_hours
+    amb, nonex = F.lit(False), F.lit(False)
+    for y in years:
+        hours = dst_local_hours(y)
+        for d, h in hours["ambiguous"]:
+            amb = amb | ((F.col(date_col) == F.lit(d)) & (F.col(hour_col) == h))
+        for d, h in hours["nonexistent"]:
+            nonex = nonex | ((F.col(date_col) == F.lit(d)) & (F.col(hour_col) == h))
+    return (F.when(amb, F.lit("dst_ambiguous")).when(nonex, F.lit("dst_nonexistent")))
+
+
+# Bỏ giờ DST mơ hồ/không tồn tại khỏi traffic_cleaned (bản ghi được giữ ở silver.traffic_quarantine, không xóa âm thầm)
 def drop_dst_repeated_hours(df: DataFrame) -> DataFrame:
-    new_df = df.filter(~((F.col("date") == "2025-11-02") & (F.col("hour") == 1)))
+    new_df = df.filter(dst_flag().isNull())
     return new_df
 
 # ----------------- Weather -----------------
