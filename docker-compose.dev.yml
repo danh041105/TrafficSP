@@ -1,0 +1,71 @@
+# Override cho máy DEV KHÔNG có MinIO (image AIStor cần minio.license; MinIO bản cộng đồng đã ngừng phát hành image).
+#   - Không khởi động minio / minio-init.
+#   - Iceberg warehouse + checkpoint của Spark đặt trên volume dùng chung traffic_lakehouse_dev (/opt/lakehouse),
+#     gắn cho spark-master, các worker, Trino và Airflow scheduler (driver, executor và Trino cùng thấy một đường dẫn).
+#   - Spark/Trino/Airflow scheduler chạy user root để ghi được vào volume (dữ liệu do Spark root ghi).
+#   - Trino dùng catalog dev (file system local) thay cho catalog S3/MinIO.
+# Khởi động:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d \
+#       postgresql kafka kafka-init spark-master spark-worker-1 trino
+#   (+ airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor grafana cloudbeaver khi cần)
+
+services:
+  spark-master:
+    user: root
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:29092
+      - PYTHONPATH=/opt/spark/jobs
+      - CHECKPOINT_ROOT=file:/opt/lakehouse/checkpoints
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+  spark-worker-1:
+    user: root
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+  spark-worker-2:
+    user: root
+    volumes: !override
+      - ./jobs:/opt/spark/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+
+  trino:
+    user: root
+    mem_limit: 2500m
+    volumes: !override
+      - ./conf/trino/catalog-dev:/etc/trino/catalog:ro
+      - ./conf/trino/access:/etc/trino/access:ro
+      - ./jobs/serving:/opt/trino-sql:ro
+      - lakehouse_dev:/opt/lakehouse
+    depends_on: !override
+      postgresql:
+        condition: service_healthy
+
+  # Spark driver của các task Airflow chạy trong scheduler -> cần cùng spark-defaults dev, cùng volume và checkpoint
+  airflow-scheduler:
+    user: "0:0"
+    environment:
+      # Airflow cài ở user site của user airflow; chạy root thì phải trỏ Python vào đó (healthcheck, docker exec)
+      - PYTHONUSERBASE=/home/airflow/.local
+      - KAFKA_BOOTSTRAP=kafka:29092
+      - SPARK_LOCAL_HOSTNAME=airflow-scheduler
+      - CHECKPOINT_ROOT=file:/opt/lakehouse/checkpoints
+    volumes: !override
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./jobs:/opt/airflow/jobs
+      - ./conf/spark-defaults.dev.conf:/opt/spark-conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      - lakehouse_dev:/opt/lakehouse
+
+volumes:
+  lakehouse_dev:
+    name: traffic_lakehouse_dev

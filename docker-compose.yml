@@ -237,6 +237,7 @@ services:
       - ./jobs:/app/jobs:ro
       - ./scripts:/app/scripts:ro
       - ./data:/app/data:ro
+      - ./logs:/app/logs          # tóm tắt chạy producer (--summary-file), benchmark
     networks:
       - traffic-net
 
@@ -273,6 +274,8 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
+      # Speed Layer (driver chạy liên tục trên spark-master) và các job submit từ đây import package common/
+      - PYTHONPATH=/opt/spark/jobs
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
@@ -361,6 +364,8 @@ services:
       - "8088:8080"
     volumes:
       - ./conf/trino/catalog:/etc/trino/catalog:ro
+      - ./conf/trino/access:/etc/trino/access:ro      # quyền: chỉ đọc dữ liệu, chỉ tạo VIEW trong schema serving
+      - ./jobs/serving:/opt/trino-sql:ro              # trino_views.sql (Serving Layer)
     mem_limit: 3g
     depends_on:
       postgresql:
