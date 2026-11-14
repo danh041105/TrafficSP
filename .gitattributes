@@ -1,0 +1,8 @@
+# Script chạy trong container Linux phải giữ LF. Git trên Windows (core.autocrlf=true) đổi sang CRLF
+# làm conf/postgres-init.sh lỗi -> không tạo user iceberg/airflow (PSQLException: password authentication failed).
+*.sh   text eol=lf
+*.conf text eol=lf
+*.sql  text eol=lf
+# Dữ liệu: giữ nguyên byte
+*.parquet binary
+data/** -text

@@ -6,12 +6,14 @@ from common.schemas import to_ddl
 # startingOffsets = earliest đọc theo offset cũ nhất với mỗi topic. Những lần sau Spark chỉ đọc vị trí đã dừng trong checkpoint.
 # các lần chạy batch nối tiếp nhau dùng chung checkpoint nên không đọc trùng
 # maxOffsetsPerTrigger giới hạn mỗi micro-batch. Tránh việc để Spark đọc hết 1 lần cả 9 tháng ~ 9tr bản ghi. 
-def read_kafka(spark: SparkSession, topic: str) -> DataFrame:
+# Speed Layer gọi lại hàm này với starting_offsets / max_offsets riêng; mặc định giữ nguyên hành vi của job Bronze.
+def read_kafka(spark: SparkSession, topic: str, starting_offsets: str = "earliest",
+               max_offsets: int = MAX_OFFSETS_PER_TRIGGER) -> DataFrame:
     df = (spark.readStream.format("kafka")
                 .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP)
                 .option("subscribe", topic)
-                .option("startingOffsets", "earliest")
-                .option("maxOffsetsPerTrigger", MAX_OFFSETS_PER_TRIGGER)
+                .option("startingOffsets", starting_offsets)
+                .option("maxOffsetsPerTrigger", max_offsets)
                 .load()
         )
     return df
