@@ -140,10 +140,51 @@ GOLD_AGG_MEASURES = {
     "min_speed": "double",
     "max_speed": "double",
 }
-GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start": "timestamp", "window_end": "timestamp",
-                            **GOLD_AGG_MEASURES, "batch_run_id": "string", "computed_ts": "timestamp"}
+GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start_utc": "timestamp", "window_end_utc": "timestamp",
+                            **GOLD_AGG_MEASURES, "avg_speed": "double", "quality_flag": "string",
+                            "batch_run_id": "string", "processed_at": "timestamp"}
 GOLD_TRAFFIC_HOURLY_FIELDS = {"link_id": "bigint", "hour_utc": "timestamp",
-                              **GOLD_AGG_MEASURES, "batch_run_id": "string", "computed_ts": "timestamp"}
+                              **GOLD_AGG_MEASURES, "avg_speed": "double", "n_windows": "int",
+                              "batch_run_id": "string", "processed_at": "timestamp"}
+
+# Nhật ký trạng thái Lambda handoff (append-only: mỗi lần chuyển trạng thái = 1 dòng; không UPDATE/DELETE).
+# T_batch hiện hành = t_batch của dòng PUBLISHED mới nhất. status: PREPARING | VALIDATED | PUBLISHED | FAILED.
+GOLD_LAMBDA_CONTROL_FIELDS = {
+    "handoff_id": "string",
+    "status": "string",
+    "t_batch_prev": "timestamp",
+    "t_batch": "timestamp",               # mốc mới (UTC, bội 5 phút); batch cho window_start_utc < t_batch
+    "batch_run_id": "string",
+    "snapshot_5min": "bigint",            # snapshot gold.traffic_5min_batch đã kiểm chứng (tag published trỏ vào đây)
+    "snapshot_hourly": "bigint",
+    "checks": "string",                   # JSON kết quả kiểm tra
+    "message": "string",
+    "created_at": "timestamp",
+}
+
+# ----------------- Speed (chỉ Speed Layer ghi) ----------------------
+SPEED_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start_utc": "timestamp", "window_end_utc": "timestamp",
+                             **GOLD_AGG_MEASURES, "avg_speed": "double", "quality_flag": "string",
+                             "kafka_ts_max": "timestamp",    # message cuối của cửa sổ vào Kafka lúc nào (đo độ trễ)
+                             "processed_at": "timestamp"}
+# 1 dòng / link. Hai nhóm cột độc lập: bản HỢP LỆ mới nhất (valid_*) và quan trắc mới nhất bất kể hợp lệ (obs_*),
+# để phân biệt cảm biến im lặng (STALE) với cảm biến vẫn gửi nhưng giá trị không hợp lệ (NO_VALID_DATA).
+SPEED_TRAFFIC_LATEST_FIELDS = {
+    "link_id": "bigint",
+    "valid_event_time": "timestamp", "valid_data_as_of": "string", "speed": "double", "travel_time": "bigint",
+    "valid_kafka_partition": "int", "valid_kafka_offset": "bigint", "valid_kafka_ts": "timestamp",
+    "obs_event_time": "timestamp", "obs_data_as_of": "string", "obs_speed": "double", "obs_travel_time": "bigint",
+    "obs_is_valid": "boolean", "obs_invalid_reason": "string",
+    "obs_kafka_partition": "int", "obs_kafka_offset": "bigint", "obs_kafka_ts": "timestamp",
+    "run_id": "string", "batch_id": "bigint", "updated_at": "timestamp",
+}
+SPEED_WEATHER_OBS_FIELDS = {
+    "cell_id": "string", "time_utc": "timestamp",
+    "temperature_2m": "double", "relative_humidity_2m": "int", "precipitation": "double", "snowfall": "double",
+    "wind_speed_10m": "double", "wind_gusts_10m": "double", "weather_code": "int",
+    "run_id": "string", "kafka_partition": "int", "kafka_offset": "bigint", "kafka_ts": "timestamp",
+    "processed_at": "timestamp",
+}
 GOLD_LINK_BASELINE_FIELDS = {
     "link_id": "bigint",
     "free_flow_speed": "double",      # p85 tốc độ hợp lệ, lúc khô, 22:00-05:59 giờ New York (D-18)

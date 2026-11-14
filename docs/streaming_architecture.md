@@ -1,135 +1,132 @@
-# Kiến trúc Streaming / Lambda — TrafficSP
+# Kiến trúc Streaming / Lambda — TrafficSP (Kafka + Spark + Iceberg + Trino)
 
-Tài liệu mô tả kiến trúc **đã chạy thật** trên nhánh `khai-streaming-speed-layer` (Docker Desktop + WSL2, 1 máy).
-Speed Layer và Batch Layer đều chạy trên **Spark 3.5.0**. Hệ thống **không dùng Apache Flink**. Lớp phục vụ là **ClickHouse**; Redis không dùng.
+Kiến trúc **đã chạy thật** trên nhánh local `khai-iceberg-trino` (tạo từ `origin/dev` 8afef89), Docker Desktop + WSL2, 1 máy.
 
-## 1. Tổng quan
+- **Không dùng** Apache Flink, ClickHouse hay Redis.
+- Speed Layer và Batch Layer đều chạy **Spark 3.5.0**, lưu bảng bằng **Apache Iceberg 1.10.1** (catalog JDBC trên PostgreSQL), truy vấn qua **Trino 484**, điều phối bằng **Airflow 3.3.2**.
+
+## 1. Sơ đồ
 
 ```
-                          ┌──────────────── Batch Layer (Spark batch) ────────────────┐
- data/raw (Parquet NYC DOT│ Bronze (Iceberg) → Silver traffic_cleaned / quarantine     │
- + JSON Open-Meteo)       │      → batch_views.py (5 phút + 1 giờ) → Gold Iceberg       │
-        │                 │      → ClickHouse traffic_5min_batch / traffic_hourly       │
-        ▼                 │      (REPLACE PARTITION theo ngày UTC qua bảng *_staging)   │
- replay_producer.py       └──────────────────────────▲─────────────────────────────────┘
-  (GD2: đồng hồ mô phỏng           stream_to_bronze  │           lambda_handoff.py
-   event-time 2025)                 (Kafka → Bronze) │      (recompute → kiểm tra → publish T_batch)
-        │                                            │                    │
-        ▼                                            │                    ▼
-   Kafka (KRaft) ──── traffic_raw (4 partition) ─────┤            traffic.lambda_handoff
-                └──── weather_raw (1 partition) ─────┤
-                                                     ▼
-                     ┌──────────── Speed Layer (Spark Structured Streaming) ────────────┐
-                     │ speed_latest : parse → event_time UTC/DST → chất lượng            │
-                     │               → traffic_latest, traffic_latest_any (ReplacingMT)  │
-                     │ speed_5min   : watermark 10' → dropDuplicates → window 5' (append)│
-                     │               → traffic_5min_rt                                    │
-                     │ speed_weather: → weather_hourly                                    │
-                     └───────────────────────────────────────────────────────────────────┘
-                                                     │
-                                                     ▼
-          ClickHouse `traffic` (Serving/Query Layer): view đọc qua FINAL
-            v_traffic_latest · v_traffic_5min_unified · v_traffic_5min_enriched
-            v_traffic_hourly_unified · v_weather_interval · v_lambda_t_batch
+NYC DOT + Open-Meteo (data/raw)
+            │
+   scripts/replay_producer.py   (GD2: đồng hồ event-time mô phỏng 2025, --speedup)
+            │
+          Kafka  traffic_raw (4 partition, key = link_id) · weather_raw (1 partition)
+            │
+     ┌──────┴───────────────────────────────┐
+     ▼                                      ▼
+ BATCH LAYER (Airflow, mỗi giờ)          SPEED LAYER (chạy liên tục, run_speed_layer.sh)
+ kafka_to_bronze (availableNow)          speed_latest : foreachBatch → MERGE INTO speed.traffic_latest
+ bronze_to_silver (+ quarantine DST)     speed_5min   : watermark 10' → dropDuplicates → window 5'
+ batch_views: gold.traffic_5min_batch                    → Iceberg sink → speed.traffic_5min_rt
+              gold.traffic_hourly        speed_weather: Iceberg sink → speed.weather_obs
+ dq_checks
+ lambda_handoff → gold.lambda_control + tag 'published'
+     │                                      │
+     └──────────────► Iceberg (JDBC catalog trên PostgreSQL; MinIO hoặc volume dev) ◄──┘
+                                   │
+                                 Trino  (catalog lakehouse, chỉ đọc dữ liệu; chỉ tạo VIEW trong serving)
+                                   │
+     serving.v_traffic_latest · v_traffic_5min_unified · v_traffic_5min_enriched
+     v_traffic_hourly_unified · v_lambda_status · v_weather_interval · v_link_dim
+                                   │
+                    Grafana (trino-datasource) / CloudBeaver
 ```
 
 ## 2. Thành phần và file
 
 | Thành phần | File | Ghi chú |
 |---|---|---|
-| Producer GD2 | `scripts/replay_producer.py` | Phát tháng 10–12/2025 theo **đồng hồ event-time mô phỏng** (`--speedup`), không theo giờ hệ thống 2026. Có `--start/--end/--months`, `--burst-*`, `--skew-*`, `--ooo-*`, `--dup-fraction`, `--seed`, `--summary-file`. Producer idempotent (`enable.idempotence`). |
-| Kafka → Bronze | `jobs/stream/stream_to_bronze.py` (có sẵn trên dev) | Dùng lại nguyên trạng. |
-| Speed Layer | `jobs/stream/speed_layer.py` | 3 query độc lập, mỗi query một checkpoint, sink `foreachBatch` → ClickHouse idempotent. |
-| Supervisor | `jobs/stream/run_speed_layer.sh` | Tự chạy lại khi ứng dụng thoát (vd ClickHouse ngừng quá ngân sách retry). |
-| Quy tắc dùng chung | `jobs/common/time_rules.py`, `quality_rules.py`, `aggregations.py` | Batch và stream gọi **cùng** hàm → kết quả hai lớp so khớp được từng cửa sổ. |
-| Ghi ClickHouse | `jobs/common/clickhouse_io.py` | `insert_deduplication_token`, retry + backoff (`CLICKHOUSE_RETRIES`, mặc định 8 ≈ 2 phút). |
-| DDL Serving | `jobs/ddl/clickhouse_serving.sql`, `clickhouse_views.sql`, `clickhouse_serving.py` | Idempotent (`IF NOT EXISTS` / `CREATE OR REPLACE VIEW`). `CLICKHOUSE_SERVING_DB` cho phép tạo bộ bảng riêng (vd `traffic_bench`). |
-| Silver | `jobs/batch/transformation/bronze_to_silver.py` | Bổ sung `silver.traffic_quarantine` (bản ghi giờ DST/thiếu khóa không bị xoá âm thầm). |
-| Batch View | `jobs/batch/gold/batch_views.py` | 5 phút + 1 giờ; Iceberg `overwritePartitions` + ClickHouse `REPLACE PARTITION` theo ngày UTC. |
-| Dimension phục vụ | `jobs/batch/gold/serving_dims.py` | `link_dim` (borough, cell, free-flow p85) + backfill `weather_hourly`. |
-| Lambda handoff | `jobs/batch/gold/lambda_handoff.py` | Chốt T_batch ở ranh giới 5 phút. |
-| Kiểm thử | `jobs/tests/test_streaming_rules.py`, `jobs/tests/integration/compare_5min.py` | Unit test + đối chiếu độc lập bằng DuckDB với Parquet gốc. |
-| Benchmark | `jobs/tests/benchmark/summarize.py`, `scripts/benchmark/run_live.sh`, `run_sweep.sh` | Xem `streaming_benchmark.md`. |
-| Môi trường dev | `docker-compose.dev.yml`, `conf/spark-defaults.dev.conf`, `.gitattributes` | Không có MinIO: warehouse/checkpoint trên volume `traffic_lakehouse_dev`. |
+| Producer GD2 | `scripts/replay_producer.py` | Đồng hồ event-time mô phỏng; `--start/--end/--months`, burst / skew / out-of-order / dup có seed; Kafka idempotent. |
+| Kafka → Bronze | `jobs/batch/ingestion/kafka_to_bronze.py` (dev) | Giữ nguyên code của nhóm: Structured Streaming `availableNow`, chạy theo đợt. |
+| Bronze → Silver | `jobs/batch/transformation/bronze_to_silver.py` (dev) | Bổ sung `silver.traffic_quarantine`. |
+| Batch View | `jobs/batch/gold/batch_views.py` | 5 phút + 1 giờ, mỗi bảng 1 commit `overwrite(khoảng ngày UTC)`. |
+| Free-flow | `jobs/batch/gold/serving_dims.py` | Ghi `gold.link_baseline`. |
+| Kiểm tra chất lượng | `jobs/batch/gold/dq_checks.py` | 6 kiểm tra bắt buộc trước handoff. |
+| Lambda handoff | `jobs/batch/gold/lambda_handoff.py`, `jobs/common/lambda_control.py` | Xem `lambda_handoff.md`. |
+| Kiểm chứng Serving | `jobs/batch/gold/verify_serving.py`, `jobs/common/trino_http.py` | REST Trino, chỉ dùng thư viện chuẩn. |
+| Lập kế hoạch | `jobs/batch/gold/plan_batch.py` | Khoảng xử lý tính từ dữ liệu, không từ ngày logic của Airflow. |
+| Speed Layer | `jobs/stream/speed_layer.py` | 3 query, 3 checkpoint `speed_v2_*`. |
+| Supervisor | `jobs/stream/run_speed_layer.sh`, `stop_speed_layer.sh` | `flock`: chỉ một instance; tự chạy lại khi lỗi. |
+| DDL | `jobs/ddl/speed.py`, `jobs/ddl/gold.py` | Idempotent; tiến hoá schema, không DROP; tạo tag `published`. |
+| View Trino | `jobs/serving/trino_views.sql` | `CREATE OR REPLACE VIEW ... SECURITY INVOKER`. |
+| Phân quyền Trino | `conf/trino/access/lakehouse-rules.json` | Đọc mọi bảng; chỉ sở hữu `serving.v_*`. |
+| Điều phối | `airflow/dags/trafficsp_lambda_batch.py` | Xem mục 5. |
+| Bảo trì | `jobs/batch/maintenance/iceberg_maintenance.py` | Compaction (an toàn); expire snapshot phải xác nhận rõ. |
+| Môi trường dev | `docker-compose.dev.yml`, `conf/spark-defaults.dev.conf`, `conf/trino/catalog-dev/` | Không có MinIO; warehouse nằm trên volume `traffic_lakehouse_dev`. |
 
-## 3. Speed Layer chi tiết
+## 3. Speed Layer
 
-### 3.1 `speed_latest` (Latest Reading)
-- Kafka `traffic_raw` → `from_json` → `with_event_time` (giờ New York → UTC; giờ DST mơ hồ/không tồn tại → `event_time_utc = NULL` + cờ) → `with_quality`.
-- Không có state trong Spark. Mỗi micro-batch lấy bản có `event_time` lớn nhất theo link (`max_by`) rồi ghi:
-  - `traffic_latest`: chỉ bản hợp lệ. Bảng dùng `ReplacingMergeTree(event_time)` nên bản cũ đến muộn **không ghi đè** bản mới.
-  - `traffic_latest_any`: bản bất kỳ, kể cả không hợp lệ, để phân biệt "có quan trắc nhưng không hợp lệ" với "không có quan trắc".
-- Thống kê mỗi batch được ghi vào `speed_batch_stats`: số dòng, số hợp lệ, số DST mơ hồ/không tồn tại, lý do không hợp lệ, khoảng event-time.
+| Query | Nguồn → đích | Sink | Bảo đảm |
+|---|---|---|---|
+| `speed_5min` | `traffic_raw` → `speed.traffic_5min_rt` | Iceberg sink gốc, append, `fanout-enabled` | Mỗi cửa sổ phát một lần; chạy lại epoch đã commit thì bị bỏ qua. |
+| `speed_latest` | `traffic_raw` → `speed.traffic_latest` | `foreachBatch` + `MERGE INTO` (copy-on-write) | Chỉ ghi khi bản mới hơn; chạy lại là no-op. |
+| `speed_weather` | `weather_raw` → `speed.weather_obs` | Iceberg sink gốc, append | Như trên. |
 
-### 3.2 `speed_5min` (Aggregate 5 phút)
-- `withWatermark(event_time_utc, 10 minutes)` → `dropDuplicates([link_id, data_as_of, event_time_utc])` → tumbling `window(5 minutes)` × `link_id`, output mode **append**.
-- Mỗi cửa sổ được phát **đúng 1 lần**, khi watermark vượt `window_end`. Bản ghi đến muộn hơn watermark bị loại; số lượng hiện ở `numRowsDroppedByWatermark` (bảng `stream_progress`). Batch Layer sẽ sửa các cửa sổ này.
-- Không dùng `dropDuplicatesWithinWatermark` vì Spark 3.5.0 lỗi `None.get` (SPARK-46676, đã sửa ở 3.5.1). Khoá khử trùng có sẵn cột event-time nên state vẫn được dọn theo watermark.
-- Chỉ lưu thành phần cộng được (`n_records, n_valid, n_zero, n_invalid_other, sum_speed, sum_speed_sq, sum_travel_time, min, max`). Mọi trung bình đều tính lại từ tổng, không có `AVG(AVG)`.
-- State store: RocksDB (`SPEED_STATE_STORE=rocksdb`).
+**Latest Reading — vì sao chọn `MERGE INTO`** thay cho "log append-only + view chọn bản mới nhất":
 
-### 3.3 `speed_weather`
-- Kafka `weather_raw` → `weather_hourly` (`ReplacingMergeTree(updated_at)`). Ghép thời tiết theo khoảng giờ làm ở Query Layer (`v_weather_interval`).
-
-### 3.4 Quan sát
-- `StreamingQueryListener` ghi `stream_progress` (rows/s, thời lượng trigger, watermark, state rows/bytes, rows dropped, offsets behind) và tuỳ chọn file JSONL.
-- `speed_latency`: phân vị `kafka_ts` của từng micro-batch và thời điểm ghi xong, dùng để đo độ trễ end-to-end.
-
-## 4. Serving (ClickHouse)
-
-| Bảng | Engine / khoá | Nguồn |
+| Tiêu chí | MERGE INTO (đã chọn) | Append log + view |
 |---|---|---|
-| `traffic_latest`, `traffic_latest_any` | ReplacingMergeTree(event_time), ORDER BY link_id | speed_latest |
-| `traffic_5min_rt` | ReplacingMergeTree(updated_at), PARTITION BY ngày UTC, ORDER BY (link_id, window_start) | speed_5min |
-| `traffic_5min_batch`, `traffic_hourly` (+ `_staging`) | ReplacingMergeTree(computed_at), PARTITION BY ngày UTC | batch_views |
-| `weather_hourly` | ReplacingMergeTree(updated_at), ORDER BY (cell_id, time_utc) | speed_weather + backfill batch |
-| `link_dim` | ReplacingMergeTree(updated_at) | serving_dims |
-| `lambda_handoff` | MergeTree (log PUBLISHED/REJECTED) | lambda_handoff |
-| `stream_progress`, `speed_batch_stats`, `speed_latency`, `batch_run_stats` | log vận hành | listener / sink / batch |
+| Kích thước | Luôn ~124 dòng: copy-on-write ghi lại 1 file nhỏ, MERGE mất 1–4 s mỗi batch | Tăng ~35 nghìn dòng/ngày; cần retention + compaction |
+| Truy vấn | Đọc 124 dòng (~190 ms) | Window function trên toàn log; càng lâu càng chậm |
+| Idempotent | Điều kiện `(event_time, kafka_offset)` mới hơn | Cần quy tắc chọn bản khi trùng event_time |
+| Xung đột commit | Chỉ một writer (`speed_latest`); compaction không đụng bảng này. Iceberg tự retry (`commit.retry.num-retries = 10`) | Không có |
 
-Mọi view đọc qua `FINAL`, không dựa vào merge nền để khử trùng. Các view chính:
-- `v_traffic_latest`: trạng thái từng link. Đồng hồ sự kiện là `max(event_time)` toàn mạng (không dùng giờ hệ thống), dùng để xác định `STALE` (> `STALE_AFTER_MINUTES` = 15).
-- `v_traffic_5min_unified`: lấy từ batch khi `window_start < T_batch` và từ speed khi `window_start ≥ T_batch`.
-- `v_traffic_5min_enriched`: thêm borough, `traffic_state` theo free-flow và thời tiết theo khoảng giờ.
-- `v_traffic_hourly_unified`: roll-up 1 giờ từ grain 5 phút hợp nhất.
+Workload hiện tại có ít link và tốc độ ghi thấp nên MERGE đơn giản, nhanh hơn và không cần dọn dữ liệu.
 
-## 5. Lambda handoff
+**Quan sát:**
+- `StreamingQueryListener` ghi `speed_progress.jsonl`: rows/s, thời lượng trigger, add_batch, watermark, state, số dòng bị loại vì watermark, lag Kafka.
+- Sink latest ghi `speed_batch_stats.jsonl` (chất lượng, DST) và `speed_latency.jsonl` (kafka_ts, thời gian MERGE).
+- Các số đo vận hành **không** ghi vào Iceberg, để không sinh thêm commit nhỏ.
 
-`lambda_handoff.py` thực hiện các bước sau, mỗi bước chỉ chạy khi bước trước thành công:
-1. Recompute Batch View cho các ngày UTC trong `[T_old, T_new)`.
-2. Commit: Iceberg `overwritePartitions`, rồi ClickHouse ghi `*_staging`, kiểm tra số dòng và `REPLACE PARTITION`. Ngày không có dữ liệu Silver thì `DROP PARTITION` (ClickHouse mới từ chối REPLACE từ nguồn rỗng).
-3. Kiểm tra trên `[T_old, T_new)`:
-   - `complete`: tổng `n_records` của batch = số dòng Silver;
-   - `unique_grain`: không trùng (link, window);
-   - `covers_realtime`: mọi cửa sổ realtime đều có ở batch;
-   - báo cáo thêm chênh lệch với realtime.
-4. Publish: chèn 1 dòng `PUBLISHED` (một INSERT nên nguyên tử). Nếu kiểm tra không đạt thì ghi `REJECTED`, thoát với mã 1 và giữ nguyên T_batch.
-5. Tuỳ chọn `--cleanup-rt-keep-days N`: dọn phân vùng realtime cũ. Mặc định **tắt** (không xoá dữ liệu).
+## 4. Serving Layer (Trino)
 
-Nếu tiến trình chết giữa chừng, T_batch chưa đổi nên view hợp nhất vẫn lấy realtime; chỉ cần chạy lại vì mọi bước đều idempotent (đã kiểm chứng bằng `--fail-at after_commit`).
+| View | Nội dung |
+|---|---|
+| `v_lambda_t_batch`, `v_lambda_status` | T_batch, snapshot đã công bố so với tag, trạng thái handoff cuối, Speed đang đi trước Batch bao nhiêu phút |
+| `v_traffic_5min_unified` | batch (tag `published`) cho `< T_batch`, speed cho `≥ T_batch` |
+| `v_traffic_5min_enriched` | + borough, free-flow, `traffic_state`, thời tiết theo khoảng giờ, `weather_status` |
+| `v_traffic_hourly_unified` | giờ trọn trước T_batch lấy từ `gold.traffic_hourly`; từ giờ chứa T_batch trở đi cộng thành phần từ 5 phút hợp nhất |
+| `v_traffic_latest` | 1 dòng / link (124 link): trạng thái, bản hợp lệ và quan trắc cuối, STALE theo đồng hồ sự kiện |
+| `v_link_dim`, `v_weather_hourly`, `v_weather_interval` | Dimension và thời tiết (Silver ưu tiên, realtime bù phần chưa có) |
 
-### ClickHouse và Trino
+- Iceberg 1.10 với JDBC catalog **hỗ trợ view** (đã kiểm chứng trên Trino 484). View được lưu trong catalog nên còn nguyên khi Trino khởi động lại.
+- Phân quyền: Trino chỉ đọc dữ liệu (`INSERT`/`DELETE` vào bảng bị từ chối), chỉ tạo/thay được view `serving.v_*`, không tạo được bảng.
 
-Nhánh `dev` (commit `e782e9f`, `631f81e`) bổ sung **Trino 484** và CloudBeaver để truy vấn lakehouse Iceberg. Hai hệ thống chạy song song, mỗi bên một vai trò:
+## 5. Airflow
 
-| | Trino | ClickHouse |
-|---|---|---|
-| Vai trò | Truy vấn ad-hoc / phân tích trên Iceberg (Bronze, Silver, Gold) | Serving tier của Lambda: dữ liệu realtime + view hợp nhất |
-| Dữ liệu | Toàn bộ lịch sử trên Iceberg | `traffic_latest`, `traffic_5min_rt`, `traffic_5min_batch`, `traffic_hourly`, `lambda_handoff`, ... |
-| Lý do | Đọc trực tiếp lakehouse, không cần chép dữ liệu | Ghi idempotent từng micro-batch (ReplacingMergeTree + dedup token), đọc độ trễ thấp |
+```
+kafka_to_bronze → plan → bronze_to_silver → [batch_5min, batch_hourly] → dq_checks → lambda_handoff → verify_serving
+```
 
-Speed Layer không ghi qua Trino. Lý do: Iceberg không có engine thay-thế-theo-khoá như ReplacingMergeTree, nên mỗi micro-batch sẽ phải MERGE/commit snapshot riêng, tạo nhiều file nhỏ và tăng độ trễ.
+- Lịch `@hourly`, `max_active_runs = 1`, `retries = 2` với backoff (riêng `dq_checks` không retry).
+- `plan` trả về exit 99 khi Bronze rỗng; Airflow coi đó là SKIPPED.
+- Speed Layer **không** nằm trong DAG nên không bị khởi động lại theo lịch Batch.
+- `lambda_handoff` chỉ chạy khi `dq_checks` thành công, và tự kiểm tra lại trên đúng snapshot trước khi công bố.
+- Đã chạy thật 4 lượt (2 theo lịch, 2 thủ công): tất cả task `success`. T_batch đi từ 2025-12-02 10:00 → 2025-12-15 10:45 → 2025-12-16 10:45.
 
-## 6. Quyết định kỹ thuật chính
+## 6. Quyết định kỹ thuật
 
 | Quyết định | Lý do |
 |---|---|
-| Spark Structured Streaming cho Speed Layer | Theo yêu cầu (không dùng Flink); dùng chung code quy tắc với batch. |
-| 3 query, 3 checkpoint | Lỗi ở một query không làm hỏng offset/state của query khác; có thể khởi động lại riêng. |
-| `foreachBatch` + `insert_deduplication_token` + ReplacingMergeTree | Exactly-once **hiệu quả** ở grain phục vụ: chạy lại micro-batch không nhân đôi dữ liệu. |
-| Append mode cho 5 phút | Spark 3.5 chỉ hỗ trợ 2 toán tử stateful nối tiếp ở append; mỗi cửa sổ phát đúng 1 lần nên đơn giản hoá đối chiếu. |
-| Watermark 10 phút | Dữ liệu NYC DOT cập nhật khoảng 5 phút/lần. Watermark 10 phút cân bằng giữa độ trễ phát cửa sổ và tỷ lệ bị loại; phần muộn hơn do Batch sửa. Xem phần quét tham số trong benchmark. |
-| T_batch ở ranh giới 5 phút, ngày UTC làm đơn vị recompute | Khớp phân vùng Iceberg/ClickHouse; REPLACE PARTITION là nguyên tử theo ngày. |
-| Giờ DST mơ hồ → không gán UTC, quarantine | Không tự đoán offset (quy tắc D-03/D-04 nhánh khai); bản ghi được đếm, không bị mất âm thầm. |
-| ClickHouse làm Serving, không dùng Redis | Latest reading 108–124 link phục vụ tốt bằng ReplacingMergeTree + FINAL, không cần thêm hệ thống. |
-| Dev không có MinIO | Image MinIO cộng đồng không còn phát hành (Docker Hub/quay trả 401). Iceberg dùng HadoopFileIO trên volume chung; production vẫn cấu hình s3a như cũ. |
+| Iceberg sink gốc cho 5 phút / weather | Idempotent theo epoch có sẵn, không phải tự viết; một commit mỗi micro-batch. |
+| `MERGE INTO` cho latest | Xem mục 3. |
+| Batch đọc qua tag `published` | Iceberg không có giao dịch nhiều bảng. Tag là cách công bố nguyên tử cho từng bảng; bản đã ghi nhưng chưa kiểm chứng không bao giờ lộ ra. |
+| `lambda_control` append-only | Không UPDATE/DELETE nên không có xung đột commit; còn lịch sử đầy đủ để phục hồi. |
+| PostgreSQL advisory lock | Dùng chính Postgres của catalog; khoá tự nhả khi tiến trình chết. |
+| Trigger mặc định 30 s | Cân bằng giữa độ trễ và số snapshot / file nhỏ (số liệu trong `streaming_benchmark.md`). |
+| Watermark 10 phút | NYC DOT cập nhật khoảng 5 phút/lần; phần muộn hơn do Batch sửa. |
+| Checkpoint mới `speed_v2_*` | Không dùng lại checkpoint của bản sink ClickHouse cũ. Checkpoint cũ vẫn được giữ, không xoá. |
+| Trino catalog dev dùng `fs.local.enabled` + `local.location=/` | Đọc trực tiếp đường dẫn `file:/opt/lakehouse/...` mà Spark (HadoopFileIO) đã ghi. |
+
+## 7. Thành phần ClickHouse đã thay thế
+
+| Trước (nhánh `khai-streaming-speed-layer`) | Sau |
+|---|---|
+| `common/clickhouse_io.py`, `clickhouse_connect` | Bỏ. Sink Iceberg gốc + `MERGE INTO`; `common/trino_http.py` để đọc. |
+| `ddl/clickhouse_serving.{py,sql}`, `clickhouse_views.sql` | `ddl/speed.py`, `ddl/gold.py`, `serving/trino_views.sql` |
+| ReplacingMergeTree + FINAL | Grain duy nhất nhờ idempotent theo epoch + MERGE có điều kiện |
+| Bảng `lambda_handoff` + `REPLACE PARTITION` | `gold.lambda_control` + `overwrite` theo khoảng + tag `published` |
+| `stream_progress`, `speed_latency`, `speed_batch_stats` (bảng ClickHouse) | File JSONL ở `OPS_LOG_DIR` |
+| Service `clickhouse`, biến `CLICKHOUSE_*`, `pip clickhouse-connect` | Đã gỡ khỏi compose, config, Dockerfile và README. Container cũ chỉ dừng, volume `traffic_clickhouse_data` vẫn giữ. |

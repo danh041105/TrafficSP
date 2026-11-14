@@ -1,11 +1,13 @@
-# Đối chiếu bảng 5 phút trong ClickHouse (realtime / batch / view hợp nhất) với tính toán ĐỘC LẬP bằng DuckDB
-# trực tiếp từ file Parquet gốc, áp dụng cùng quy tắc (0 < speed <= 100, travel_time > 0; bỏ giờ DST mơ hồ).
+# Đối chiếu bảng/view 5 phút (speed.traffic_5min_rt, gold.traffic_5min_batch, serving.v_traffic_5min_unified - đọc qua
+# Trino) với tính toán ĐỘC LẬP bằng DuckDB trực tiếp từ file Parquet gốc, cùng quy tắc (0 < speed <= 100, travel_time > 0;
+# bỏ giờ DST mơ hồ).
 # Chạy trên máy host (cần duckdb, pandas):
-#   python jobs/tests/integration/compare_5min.py --csv logs/rt.csv --start 2025-10-01T04:00 --end 2025-10-03T03:45
+#   python jobs/tests/integration/compare_5min.py --csv logs/u.csv --start 2025-12-02T05:00 --end 2025-12-02T10:45 --months 12
 # CSV lấy bằng:
-#   docker exec traffic-clickhouse clickhouse-client ... -q "SELECT link_id, toUnixTimestamp(window_start) ws, n_records,
-#       n_valid, n_zero, n_invalid_other, sum_speed, sum_travel_time, min_speed, max_speed FROM traffic_5min_rt FINAL
-#       WHERE ... FORMAT CSVWithNames" > logs/rt.csv
+#   docker exec traffic-trino trino --output-format CSV_HEADER_UNQUOTED --execute "SELECT link_id,
+#       CAST(to_unixtime(window_start_utc) AS bigint) ws, n_records, n_valid, n_zero, n_invalid_other, sum_speed,
+#       sum_travel_time, min_speed, max_speed FROM lakehouse.serving.v_traffic_5min_unified
+#       WHERE window_start_utc >= TIMESTAMP '2025-12-02 05:00 UTC'" > logs/u.csv
 import argparse
 import json
 import sys

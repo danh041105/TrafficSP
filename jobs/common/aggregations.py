@@ -37,7 +37,8 @@ def rollup_hourly(df5: DataFrame) -> DataFrame:
                .groupBy("link_id", "hour_utc")
                .agg(*[F.sum(c).alias(c) for c in ("n_records", "n_valid", "n_zero", "n_invalid_other", "sum_speed", "sum_speed_sq")],
                     F.sum("sum_travel_time").cast("bigint").alias("sum_travel_time"),
-                    F.min("min_speed").alias("min_speed"), F.max("max_speed").alias("max_speed")))
+                    F.min("min_speed").alias("min_speed"), F.max("max_speed").alias("max_speed"),
+                    F.count("*").cast("int").alias("n_windows")))      # số cửa sổ 5 phút có dữ liệu trong giờ
 
 
 def with_avg(df: DataFrame) -> DataFrame:

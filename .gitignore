@@ -6,5 +6,7 @@ docker-data/
 minio.license
 agent/
 .gitignore
-# Kết quả chạy/đối chiếu/benchmark sinh ra lúc chạy (producer summary, CSV export, docker stats)
+CLAUDE.md
+# Kết quả chạy/đối chiếu/benchmark và log Airflow sinh ra lúc chạy
 logs/
+airflow/logs/

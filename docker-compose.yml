@@ -237,7 +237,7 @@ services:
       - ./jobs:/app/jobs:ro
       - ./scripts:/app/scripts:ro
       - ./data:/app/data:ro
-      - ./logs:/app/logs          # tóm tắt chạy producer (--summary-file)
+      - ./logs:/app/logs          # tóm tắt chạy producer (--summary-file), benchmark
     networks:
       - traffic-net
 
@@ -274,17 +274,13 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
-      # Speed layer (driver chạy trên spark-master) ghi ClickHouse qua HTTP
-      - CLICKHOUSE_HOST=clickhouse
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      # Speed Layer (driver chạy liên tục trên spark-master) và các job submit từ đây import package common/
       - PYTHONPATH=/opt/spark/jobs
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     ports:
       - "8090:8080" # Spark Master UI
-      - "4041:4040" # Spark UI của job submit từ spark-master (4040 đã dành cho Airflow)
       - "7077:7077"
     restart: unless-stopped
     networks:
@@ -348,8 +344,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource
     volumes:
-      - ./docker-data/grafana:/var/lib/grafana
+      - ./docker-data/grafana:/var/lib/grafana  
     restart: unless-stopped
     networks:
       - traffic-net
@@ -367,6 +364,8 @@ services:
       - "8088:8080"
     volumes:
       - ./conf/trino/catalog:/etc/trino/catalog:ro
+      - ./conf/trino/access:/etc/trino/access:ro      # quyền: chỉ đọc dữ liệu, chỉ tạo VIEW trong schema serving
+      - ./jobs/serving:/opt/trino-sql:ro              # trino_views.sql (Serving Layer)
     mem_limit: 3g
     depends_on:
       postgresql:
@@ -387,38 +386,6 @@ services:
     networks:
       - traffic-net
 
-  # ClickHouse: Serving tier cho Lambda (hot). Speed Layer ghi traffic_latest / traffic_5min_rt; Batch View đẩy
-  # traffic_5min_batch / traffic_hourly; view hợp nhất v_traffic_5min_unified đọc cả hai theo T_batch.
-  # Trino (ở trên) dùng để truy vấn Iceberg (Bronze/Silver/Gold); ClickHouse phục vụ độ trễ thấp cho dữ liệu realtime.
-  # DDL: jobs/ddl/clickhouse_serving.py (database `traffic`).
-  clickhouse:
-    image: clickhouse/clickhouse-server:26.8
-    container_name: traffic-clickhouse
-    hostname: clickhouse
-    environment:
-      - CLICKHOUSE_DB=TrafficSP
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
-    ports:
-      - "8123:8123"     # HTTP: Speed Layer / Batch (clickhouse-connect), Grafana, CloudBeaver
-      - "19000:9000"    # native TCP (cổng 9000 của máy đã dành cho MinIO)
-    ulimits: # cấu hình giới hạn tài nguyên và số file được mở cùng lúc
-      nofile:
-        soft: 262144
-        hard: 262144
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse #Lưu trên wsl2 để có gì query các thứ cho nhanh
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    restart: unless-stopped
-    networks:
-      - traffic-net
-
 networks:
   traffic-net:
     name: traffic-net
@@ -428,6 +395,4 @@ volumes:
     name: traffic_postgres_data
   kafka_data:
     name: traffic_kafka_data
-  clickhouse_data:
-    name: traffic_clickhouse_data
   cloudbeaver_workspace:

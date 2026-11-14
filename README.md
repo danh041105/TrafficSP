@@ -12,10 +12,6 @@ MINIO_ROOT_PASSWORD=doi_mat_khau_nay
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=doi_mat_khau_nay
 
-# cấu hình đăng nhập clickhouse
-CLICKHOUSE_USER=admin
-CLICKHOUSE_PASSWORD=doi_mat_khau_nay
-
 # cấu hình đăng nhập postgres_db cho airflow và iceberg catalog
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=doi_mat_khau_nay
