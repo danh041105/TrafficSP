@@ -2,9 +2,7 @@
 # Mỗi hàm nhận DataFrame, trả DataFrame
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as F
-
-# Múi giờ của New York
-TRAFFIC_TIMEZONE = "America/New_York"
+from common.config import TRAFFIC_TIMEZONE
 
 # Bỏ trùng
 def deduplicate(df: DataFrame, key: list[str]) -> DataFrame:
