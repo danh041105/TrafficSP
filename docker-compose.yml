@@ -22,7 +22,7 @@ services:
       - AIRFLOW_DB_PASSWORD=${AIRFLOW_DB_PASSWORD}
       - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./conf/postgres-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -129,8 +129,8 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     command: minio server /data --console-address ":9001" --license /minio.license
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:9000/minio/health/live" ]
@@ -190,7 +190,7 @@ services:
       - KAFKA_LOG_DIRS=/var/lib/kafka/data
       - KAFKA_HEAP_OPTS=-Xmx1G -Xms1G
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     volumes:
       - kafka_data:/var/lib/kafka/data #Lưu trên wsl2, log segment của Kafka ghi lên bind mount Windows dễ lỗi
     healthcheck:
@@ -270,6 +270,8 @@ services:
       --host spark-master --port 7077 --webui-port 8080
     environment:
       - KAFKA_BOOTSTRAP=kafka:29092
+      - PYTHONPATH=/opt/spark/jobs
+      - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
