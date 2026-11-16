@@ -4,3 +4,4 @@ venv/
 __pycache__/
 docker-data/
 minio.license
+/agent
