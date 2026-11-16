@@ -118,7 +118,7 @@ def send(producer: Producer, topic: str, key: str, msg: dict):
             producer.produce(topic, key=key.encode("utf-8"), value=value, on_delivery=on_delivery)
             break
         except BufferError:
-            # Hàng đợi đầy (producer đọc nhanh hơn Kafka nhận): chờ khoảng 0.5s  rồi gửi lại
+            # Hàng đợi nội bộ đầy (producer đọc nhanh hơn Kafka nhận): chờ bớt rồi gửi lại
             producer.poll(0.5)
     producer.poll(0)   # cho phép callback on_delivery chạy
 

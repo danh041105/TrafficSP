@@ -14,7 +14,6 @@ from common.config import (BRONZE_TRAFFIC_TABLE, BRONZE_WEATHER_TABLE, SILVER_TR
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
                             SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS)
 from common.spark_session import build_spark
-from common.logger import get_logger
 from common.data_cleaning import (cast_traffic, parsed_traffic_time, drop_null_keys,
                                   drop_dst_repeated_hours, deduplicate, parse_weather_time)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
@@ -22,8 +21,6 @@ from batch.transformation.link_location import (clean_link_points, add_median_po
 
 STEPS = ["weather", "link_info", "traffic"]
 CACHE = StorageLevel.MEMORY_AND_DISK
-
-log = get_logger("bronze_to_silver")
 
 # Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver
 def conform(df: DataFrame, fields: dict) -> DataFrame:
@@ -66,7 +63,7 @@ def run_weather(spark, job_run_id: str) -> None:
     out.writeTo(SILVER_WEATHER_CLEANED).overwrite(F.lit(True))          # bảng nhỏ: ghi đè toàn bảng
     write_audit("weather", F.to_date("weather_utc"), raw, cleaned, silver, job_run_id)
 
-    log.info("[weather] đã ghi %d dòng", silver.count())
+    print(f"[weather] đã ghi {silver.count()} dòng")
     raw.unpersist()
     silver.unpersist()
 
@@ -82,7 +79,7 @@ def run_link_info(spark) -> None:
     out = assign_nearest_cell(links, cells).withColumn("processed_ts", F.current_timestamp())
     conform(out, SILVER_LINK_INFO_FIELDS).writeTo(SILVER_LINK_INFO).overwrite(F.lit(True))
 
-    log.info("[link_info] đã ghi %d link", spark.table(SILVER_LINK_INFO).count())
+    print(f"[link_info] đã ghi {spark.table(SILVER_LINK_INFO).count()} link")
 
 
 def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
@@ -100,7 +97,7 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     out.writeTo(SILVER_TRAFFIC_CLEANED).append()
     write_audit("traffic", F.col("date"), raw, cleaned, silver, job_run_id)
 
-    log.info("[traffic] %s -> %s: đã ghi %d dòng", start, end, silver.count())
+    print(f"[traffic] {start} -> {end}: đã ghi {silver.count()} dòng")
     raw.unpersist()
     silver.unpersist()
 
@@ -122,7 +119,7 @@ def main():
 
     spark = build_spark("bronze_to_silver")
     job_run_id = str(uuid.uuid4())
-    log.info("job_run_id = %s, các bước: %s, khoảng ngày: %s -> %s", job_run_id, steps, start, end)
+    print(f"job_run_id = {job_run_id}, các bước: {steps}")
 
     # Thứ tự cố định: link_info cần weather_cleaned để lấy tâm ô
     if "weather" in steps:

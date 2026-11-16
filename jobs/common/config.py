@@ -22,30 +22,27 @@ HISTORY_MONTHS = range(1, 10)
 # Giai đoạn 2: từ ngày 01/10/2025 đến ngày 31/12/2025
 REPLAY_MONTHS = range(10, 13)
 
-# Múi giờ của New York
-TRAFFIC_TIMEZONE = "America/New_York"
-
 # Lakehouse(MinIO + Iceberg):
 # namespace nó tương tự như schema trong database được dùng để tổ chức và quản lý các table và view trong iceberg
+
 # Bronze
 BRONZE_NAMESPACE = "lakehouse.bronze"
-# các table trong namespace bronze
+# các table trong namespace
 BRONZE_TRAFFIC_TABLE = "lakehouse.bronze.traffic_raw"
 BRONZE_WEATHER_TABLE = "lakehouse.bronze.weather_raw"
 
 # Silver
 SILVER_NAMESPACE = "lakehouse.silver"
-# các table trong namespace silver
 SILVER_TRAFFIC_CLEANED = "lakehouse.silver.traffic_cleaned"
 SILVER_WEATHER_CLEANED = "lakehouse.silver.weather_cleaned"
 SILVER_LINK_INFO = "lakehouse.silver.link_info"
 SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
 
-# Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
-CHECKPOINT_TRAFFIC = "s3a://lakehouse/checkpoints/batch_layer/traffic_raw"
-CHECKPOINT_WEATHER = "s3a://lakehouse/checkpoints/batch_layer/weather_raw"
 
 # ---------- Spark Streaming ----------
+# Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
+CHECKPOINT_TRAFFIC = "s3a://lakehouse/checkpoints/traffic_raw"
+CHECKPOINT_WEATHER = "s3a://lakehouse/checkpoints/weather_raw"
 # setup: mỗi 30s Spark sẽ lấy toàn bộ message mới trong Kafka ghi vào Bronze.
 TRIGGER_INTERVAL = "30 seconds"
 
@@ -55,7 +52,3 @@ TRIGGER_INTERVAL = "30 seconds"
 # Giai đoạn 2: time >  WEATHER_PHASE_BOUNDARY_UTC
 
 WEATHER_PHASE_BOUNDARY_UTC = "2025-10-01T04:00"
-
-# Speed layer
-REALTIME_NAMESPACE = "lakehouse.realtime"
-# các table trong namespace realtime

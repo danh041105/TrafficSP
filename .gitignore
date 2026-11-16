@@ -4,10 +4,3 @@ venv/
 __pycache__/
 docker-data/
 minio.license
-<<<<<<< HEAD
-/agent
-=======
-agent/
-.gitignore
-.claude/
->>>>>>> eed101cd1415f6f4a245d43e5f97410298111697
