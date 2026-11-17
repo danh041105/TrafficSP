@@ -88,7 +88,8 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
       - ./jobs:/opt/airflow/jobs
       - ./conf/spark-defaults.conf:/opt/spark-conf/spark-defaults.conf:ro
-      - ./data:/opt/data:ro 
+      - ./data:/opt/data:ro
+      - ./docker-data/lakehouse:/opt/lakehouse   # cùng thư mục làm việc với spark-master (logs, ml_models)
     ports:
       - "4040:4040"     # Spark UI của job đang chạy
     healthcheck:
@@ -279,6 +280,10 @@ services:
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      # Thư mục làm việc cục bộ (không phải dữ liệu Iceberg - dữ liệu nằm trên MinIO):
+      # logs/ = số đo vận hành Speed Layer (OPS_LOG_DIR), ml_models/ + ml_export/ = model và file xuất của ML
+      - ./docker-data/lakehouse:/opt/lakehouse
     ports:
       - "8090:8080" # Spark Master UI
       - "7077:7077"

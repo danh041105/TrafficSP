@@ -3,9 +3,8 @@
 Mọi lệnh chạy từ thư mục gốc repo. Trên Git Bash (Windows) cần `export MSYS_NO_PATHCONV=1` để đường dẫn `/opt/...` không bị đổi.
 
 ```bash
-# Máy dev không có MinIO (warehouse trên volume traffic_lakehouse_dev):
-C="docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile tools"
-# Môi trường chính có MinIO + minio.license:  C="docker compose --profile tools"
+# Một file compose duy nhất: warehouse Iceberg + checkpoint trên MinIO (cần minio.license ở gốc repo, xem README mục 4)
+C="docker compose --profile tools"
 SUBMIT="docker exec traffic-spark-master /opt/spark/bin/spark-submit"
 TRINO="docker exec traffic-trino trino --catalog lakehouse"
 ```
@@ -16,7 +15,7 @@ TRINO="docker exec traffic-trino trino --catalog lakehouse"
 # .env: xem README mục 1 (không commit .env)
 $C build spark-master producer
 docker build -f dockerfiles/airflow.dockerfile -t ad/airflow:3.3.2 dockerfiles
-$C up -d postgresql kafka kafka-init spark-master spark-worker-1 trino
+$C up -d postgresql kafka kafka-init minio minio-init spark-master spark-worker-1 trino
 $C up -d airflow-init && $C up -d airflow-apiserver airflow-scheduler airflow-dag-processor   # + grafana cloudbeaver nếu cần
 ```
 
@@ -142,13 +141,11 @@ python -m pytest -q jobs/tests/test_streaming_rules.py jobs/tests/test_lambda_co
 |---|---|
 | `CONCURRENT_STREAM_LOG_UPDATE ... Multiple streaming jobs detected` | Hai ứng dụng dùng chung checkpoint. Supervisor hiện dùng `flock`. Nếu vẫn gặp: chạy `stop_speed_layer.sh` rồi khởi động lại **một** lần. Dữ liệu không trùng (đã kiểm chứng). |
 | `pkill -f "...speed_layer.py"` làm chết chính lệnh `docker exec bash -c` | Mẫu khớp luôn dòng lệnh của shell. Dùng `stop_speed_layer.sh` (mẫu neo `^/opt/java/...`). |
-| Trino: `Metadata not found in metadata location` (dev) | Catalog dev cần `fs.local.enabled=true` và `local.location=/`. Tên cũ `fs.native-local.enabled` đã bị đổi. |
-| Trino: `Failed to create file ... metadata.json` khi `CREATE VIEW` (dev) | Volume do Spark (root) ghi. Trino trong dev chạy `user: root`. |
+| MinIO không khởi động, log báo lỗi license | Thiếu hoặc sai `minio.license` ở gốc repo (gói AIStor Free, 1 node). Kiểm tra: `docker exec traffic-minio-aistor mc license info <alias>`. |
 | Trino: `Access Denied: Cannot create table serving.x` | Đúng thiết kế: chỉ cho tạo view `serving.v_*`. |
 | `Column 'avg_speed' cannot be resolved` khi đọc tag `published` | Đọc theo tag dùng schema của snapshot đó. `ddl/gold.py` đã tự commit rỗng và dời tag khi schema đổi và tag đang trỏ vào `main`. |
 | Image Trino lỗi `Exec format error`, launcher 0 byte | Docker Desktop giải nén hard link thành file rỗng khi máy thiếu bộ nhớ ảo. Tăng page file, xoá image, pull lại; hoặc vá bằng file lấy từ layer gốc. |
 | WSL `0xc00000fd`, `paging file is too small` | Windows hết bộ nhớ ảo. Tăng page file (đã đặt 16–24 GB) hoặc tắt bớt dịch vụ nặng. |
-| `airflow-scheduler` unhealthy, `No module named 'airflow'` | Dev chạy scheduler bằng root; override đã đặt `PYTHONUSERBASE=/home/airflow/.local`. Lệnh CLI dùng `docker exec -u airflow`. |
 | Handoff thoát mã 2 | Một handoff khác đang giữ advisory lock. Chờ nó xong. |
 | Handoff `FAILED: checks failed`, `covers_realtime=false` | Silver chưa đủ ngày. Chạy bổ sung `bronze_to_silver` rồi handoff lại. |
 | Cửa sổ 5 phút cuối chưa xuất hiện | Append mode chỉ phát cửa sổ khi watermark (event_time max − 10') vượt `window_end`. Phải có dữ liệu mới thì cửa sổ cuối mới được phát. |

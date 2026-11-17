@@ -54,7 +54,7 @@ NYC DOT + Open-Meteo (data/raw)
 | Phân quyền Trino | `conf/trino/access/lakehouse-rules.json` | Đọc mọi bảng; chỉ sở hữu `serving.v_*`. |
 | Điều phối | `airflow/dags/trafficsp_lambda_batch.py` | Xem mục 5. |
 | Bảo trì | `jobs/batch/maintenance/iceberg_maintenance.py` | Compaction (an toàn); expire snapshot phải xác nhận rõ. |
-| Môi trường dev | `docker-compose.dev.yml`, `conf/spark-defaults.dev.conf`, `conf/trino/catalog-dev/` | Không có MinIO; warehouse nằm trên volume `traffic_lakehouse_dev`. |
+| Môi trường | `docker-compose.yml`, `conf/spark-defaults.conf`, `conf/trino/catalog/` | Một file compose duy nhất; warehouse và checkpoint trên MinIO (cần `minio.license`). Thư mục làm việc cục bộ `./docker-data/lakehouse` → `/opt/lakehouse` (log vận hành, model ML). |
 
 ## 3. Speed Layer
 
