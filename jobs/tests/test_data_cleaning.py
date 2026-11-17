@@ -3,7 +3,7 @@
 from pyspark.sql import functions as F
 
 from common.spark_session import build_spark
-from common.data_cleaning import (cast_traffic, parsed_traffic_time, drop_null_keys, dst_hours,
+from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys, dst_hours,
                                   dst_reason, drop_dst_duplicated_hours, deduplicate, parse_weather_time)
 
 spark = build_spark("test_data_cleaning")
@@ -29,7 +29,7 @@ rows = [
     ("1", "200", "0", 42.2, 60, "2025-03-10T12:00:00", 1, 10),  # H2: đọc lại Kafka (trùng y hệt)
     ("1", "200", "0", 38.5, 60, "2025-03-10T12:00:00", 1, 25),  # H3: bản sửa -> phải được giữ
 ]
-parsed = parsed_traffic_time(cast_traffic(spark.createDataFrame(rows, cols)))
+parsed = enriched_traffic_time(cast_traffic(spark.createDataFrame(rows, cols)))
 
 # dst_reason: chỉ D và I có nhãn, các dòng khác null
 reasons = {r["kafka_offset"]: r["reason"]

@@ -11,10 +11,10 @@ from pyspark.sql import Column, DataFrame, functions as F
 from common.config import (BRONZE_TRAFFIC_TABLE, BRONZE_WEATHER_TABLE, SILVER_TRAFFIC_CLEANED, SILVER_WEATHER_CLEANED,
                            SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE)
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
-                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS)
+                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS, conform)
 from common.spark_session import build_spark
 from common.logger import get_logger
-from common.data_cleaning import (cast_traffic, parsed_traffic_time, drop_null_keys,
+from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys,
                                   drop_dst_duplicated_hours, deduplicate,dst_reason, parse_weather_time)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
                                                 assign_nearest_cell)
@@ -22,10 +22,6 @@ STEPS = ["weather", "link_info", "traffic"]
 CACHE = StorageLevel.MEMORY_AND_DISK
 
 log = get_logger("bronze_to_silver")
-
-# Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver
-def conform(df: DataFrame, fields: dict) -> DataFrame:
-    return df.select([F.col(c).cast(t).alias(c) for c, t in fields.items()])
 
 def write_audit(source: str, event_date: Column, raw: DataFrame, before_dedup: DataFrame,
                 after_dedup: DataFrame, job_run_id: str) -> None:
@@ -86,7 +82,7 @@ def run_link_info(spark) -> None:
 def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     # data_as_of là giờ New York nên event_month cũng theo giờ New York: lọc đúng partition Bronze
     bronze = spark.table(BRONZE_TRAFFIC_TABLE).filter(F.col("event_month").between(start[:7], end[:7]))
-    raw = (parsed_traffic_time(cast_traffic(bronze))
+    raw = (enriched_traffic_time(cast_traffic(bronze))
            .filter(F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date")))
            .persist(CACHE))
     # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025

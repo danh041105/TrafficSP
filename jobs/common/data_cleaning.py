@@ -33,8 +33,8 @@ def cast_traffic(df: DataFrame) -> DataFrame:
 
 # Cột data_as_of ("2025-01-01T00:03:03", giờ New York) 
 # traffic_utc + date/hour/day_of_week theo giờ New York"""
-
-def parsed_traffic_time(df: DataFrame) -> DataFrame:
+# enrich data: từ data_as_of thêm các trường như: day_of_week, is_weekend, season
+def enriched_traffic_time(df: DataFrame) -> DataFrame:
     local_ts = F.to_timestamp("data_as_of", "yyyy-MM-dd'T'HH:mm:ss")
     new_df = (df
             .withColumn("_local_ts", local_ts)
@@ -42,6 +42,13 @@ def parsed_traffic_time(df: DataFrame) -> DataFrame:
             .withColumn("date", F.to_date("_local_ts"))
             .withColumn("hour", F.hour("_local_ts"))
             .withColumn("day_of_week", F.dayofweek("_local_ts"))
+            .withColumn("is_weekend", F.dayofweek("_local_ts").isin(1, 7))
+            .withColumn("season", 
+                        F.when(F.month("_local_ts").isin(3, 4, 5), "Spring")
+                         .when(F.month("_local_ts").isin(6, 7, 8), "Summer")
+                         .when(F.month("_local_Ts").isin(9, 10, 11), "Fall")
+                         .otherwise("Winter")
+            )
             .drop("_local_ts", "data_as_of")
     )
     return new_df

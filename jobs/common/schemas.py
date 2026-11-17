@@ -54,10 +54,12 @@ SILVER_TRAFFIC_FIELDS = {
     "id": "bigint",
     "link_id": "bigint",
     "transcom_id": "string",
-    "traffic_utc": "timestamp",      # data_as_of (giờ New York) đã đổi sang UTC
+    "traffic_utc": "timestamp",       # data_as_of (giờ New York) đã đổi sang UTC
     "date": "date",                   # ngày theo giờ New York
     "hour": "int",                    # từ 0h đến 23h
-    "day_of_week": "int",            # thứ trong tuần theo giờ New York
+    "day_of_week": "int",             # thứ trong tuần theo giờ New York
+    "is_weekend": "boolean",          # có phải cuối tuần hay k ?
+    "season": "string",               # Đang là mùa nào ?
     "speed": "double",                # mph
     "travel_time": "bigint",          # giây
     "status": "int",
@@ -139,6 +141,11 @@ def to_ddl(fields: dict) -> str:
 
     ddl = ", ".join(columns)
     return ddl
+
+from pyspark.sql import DataFrame, functions as F
+# Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver
+def conform(df: DataFrame, fields: dict) -> DataFrame:
+    return df.select([F.col(c).cast(t).alias(c) for c, t in fields.items()])
 
 # if __name__ == "__main__":
 #     print(field_names(TRAFFIC_FIELDS))
