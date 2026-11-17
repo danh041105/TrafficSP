@@ -10,13 +10,13 @@ from datetime import date
 from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame, functions as F
 from common.config import (BRONZE_TRAFFIC_TABLE, BRONZE_WEATHER_TABLE, SILVER_TRAFFIC_CLEANED, SILVER_WEATHER_CLEANED,
-                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT)
+                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE)
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
-                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS)
+                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS, to_ddl)
 from common.spark_session import build_spark
 from common.logger import get_logger
 from common.data_cleaning import (cast_traffic, parsed_traffic_time, drop_null_keys,
-                                  drop_dst_repeated_hours, deduplicate, parse_weather_time)
+                                  drop_dst_repeated_hours, deduplicate, parse_weather_time, dst_flag)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
                                                 assign_nearest_cell)
 
@@ -93,6 +93,15 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
            .persist(CACHE))
     cleaned = drop_dst_repeated_hours(drop_null_keys(raw, ["link_id", "traffic_utc"]))
     silver = deduplicate(cleaned, ["link_id", "traffic_utc"]).persist(CACHE)
+
+    # Bản ghi không vào traffic_cleaned (giờ DST mơ hồ/không tồn tại, thiếu khóa) -> quarantine, không xóa âm thầm
+    quarantine = (raw.withColumn("reason", F.coalesce(dst_flag(), F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(),
+                                                                         F.lit("missing_key"))))
+                     .filter(F.col("reason").isNotNull()))
+    spark.sql(f"CREATE TABLE IF NOT EXISTS {SILVER_TRAFFIC_QUARANTINE} ({to_ddl(SILVER_TRAFFIC_QUARANTINE_FIELDS)}) "
+              "USING iceberg TBLPROPERTIES ('format-version' = '2')")
+    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_QUARANTINE} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
+    conform(quarantine.withColumn("processed_ts", F.current_timestamp()), SILVER_TRAFFIC_QUARANTINE_FIELDS)         .writeTo(SILVER_TRAFFIC_QUARANTINE).append()
 
     # Xóa đúng các ngày đang xử lý rồi ghi lại -> chạy lại bao nhiêu lần cũng không sinh trùng
     spark.sql(f"DELETE FROM {SILVER_TRAFFIC_CLEANED} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")

@@ -1,0 +1,9 @@
+{
+  "schemas": [
+    { "owner": false }
+  ],
+  "tables": [
+    { "schema": "serving", "table": "v_.*", "privileges": ["SELECT", "OWNERSHIP"] },
+    { "privileges": ["SELECT"] }
+  ]
+}

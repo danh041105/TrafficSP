@@ -6,4 +6,8 @@ docker-data/
 minio.license
 agent/
 .gitignore
+CLAUDE.md
 .claude/
+# Kết quả chạy/đối chiếu/benchmark và log Airflow sinh ra lúc chạy
+logs/
+airflow/logs/
