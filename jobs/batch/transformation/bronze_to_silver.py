@@ -14,7 +14,7 @@ from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
                             SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS, conform)
 from common.spark_session import build_spark
 from common.logger import get_logger
-from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys,
+from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys, drop_invalid_status,
                                   drop_dst_duplicated_hours, deduplicate,dst_reason, parse_weather_time)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
                                                 assign_nearest_cell)
@@ -88,8 +88,13 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025
     # hoặc khoảng năm nếu giao nhau giữa 2 năm: ví dụ 2025 và 2026
     years = tuple(range(int(start[:4]), int(end[:4]) + 1))
-    cleaned = drop_dst_duplicated_hours(drop_null_keys(raw, ["link_id", "traffic_utc"]), years)
-    silver = deduplicate(cleaned, ["link_id", "traffic_utc"]).persist(CACHE)
+    cleaned = (
+        raw
+        .transform(drop_null_keys, ["link_id", "traffic_utc"])
+        .transform(drop_dst_duplicated_hours, years)
+        .transform(drop_invalid_status)
+    )
+    silver = cleaned.transform(deduplicate, ["link_id", "traffic_utc"]).persist(CACHE)
 
     # Quarantine: dòng bị loại vì giờ DST (lặp/không tồn tại) hoặc thiếu link_id. 
     missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))

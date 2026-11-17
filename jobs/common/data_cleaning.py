@@ -19,6 +19,11 @@ def deduplicate(df: DataFrame, key: list[str]) -> DataFrame:
     )
     return new_df
 
+# Loại bỏ status không hợp lệ: status = -101 là do cảm biến bị lỗi
+def drop_invalid_status(df: DataFrame) -> DataFrame:
+    new_df = df.filter(F.col("status") != -101)
+    return new_df
+
 # Bỏ dòng thiếu cột khóa như link_id, traffic_utc
 def drop_null_keys(df: DataFrame, keys: list[str]) -> DataFrame:
     return df.dropna(subset=keys)

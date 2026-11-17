@@ -130,6 +130,7 @@ SILVER_TRAFFIC_QUARANTINE_FIELDS = {
     "kafka_offset": "bigint",
     "processed_ts": "timestamp",
 }
+
 def field_names(fields: dict) -> list[str]:
     return list(fields)
 
