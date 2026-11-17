@@ -22,28 +22,33 @@ HISTORY_MONTHS = range(1, 10)
 # Giai đoạn 2: từ ngày 01/10/2025 đến ngày 31/12/2025
 REPLAY_MONTHS = range(10, 13)
 
+# Múi giờ của New York
+TRAFFIC_TIMEZONE = "America/New_York"
+
 # Lakehouse(MinIO + Iceberg):
 # namespace nó tương tự như schema trong database được dùng để tổ chức và quản lý các table và view trong iceberg
-
 # Bronze
 BRONZE_NAMESPACE = "lakehouse.bronze"
-# các table trong namespace
+# các table trong namespace bronze
 BRONZE_TRAFFIC_TABLE = "lakehouse.bronze.traffic_raw"
 BRONZE_WEATHER_TABLE = "lakehouse.bronze.weather_raw"
 
 # Silver
 SILVER_NAMESPACE = "lakehouse.silver"
+# các table trong namespace silver
 SILVER_TRAFFIC_CLEANED = "lakehouse.silver.traffic_cleaned"
 SILVER_WEATHER_CLEANED = "lakehouse.silver.weather_cleaned"
 SILVER_LINK_INFO = "lakehouse.silver.link_info"
 SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
 
+# Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
+# Gốc mặc định trên MinIO (s3a); biến môi trường CHECKPOINT_ROOT đổi được gốc (vd chạy thử/benchmark) mà không sửa code.
+# Mỗi streaming query một thư mục riêng: batch_layer/* cho job nạp Bronze, speed_v2_* cho Speed Layer (bên dưới).
+CHECKPOINT_ROOT = os.getenv("CHECKPOINT_ROOT", "s3a://lakehouse/checkpoints")
+CHECKPOINT_TRAFFIC = f"{CHECKPOINT_ROOT}/batch_layer/traffic_raw"
+CHECKPOINT_WEATHER = f"{CHECKPOINT_ROOT}/batch_layer/weather_raw"
 
 # ---------- Spark Streaming ----------
-# Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
-# Mặc định trên MinIO (s3a). Biến môi trường CHECKPOINT_ROOT cho phép môi trường dev dùng thư mục dùng chung khác.
-CHECKPOINT_TRAFFIC = os.getenv("CHECKPOINT_ROOT", "s3a://lakehouse/checkpoints") + "/traffic_raw"
-CHECKPOINT_WEATHER = os.getenv("CHECKPOINT_ROOT", "s3a://lakehouse/checkpoints") + "/weather_raw"
 # setup: mỗi 30s Spark sẽ lấy toàn bộ message mới trong Kafka ghi vào Bronze.
 TRIGGER_INTERVAL = "30 seconds"
 
@@ -58,8 +63,7 @@ WEATHER_PHASE_BOUNDARY_UTC = "2025-10-01T04:00"
 # Không dùng Flink, không dùng ClickHouse. Batch và Speed ghi vào HAI namespace khác nhau (gold.* / speed.*),
 # không bao giờ ghi chung một bảng. Mọi giá trị đọc được từ biến môi trường để benchmark không phải sửa code.
 
-# Mỗi streaming query một checkpoint riêng (không dùng chung thư mục)
-CHECKPOINT_ROOT = os.getenv("CHECKPOINT_ROOT", "s3a://lakehouse/checkpoints")
+# Mỗi streaming query một checkpoint riêng (không dùng chung thư mục); CHECKPOINT_ROOT định nghĩa ở trên
 # v2: checkpoint mới cho sink Iceberg (không dùng lại checkpoint của bản sink ClickHouse cũ)
 CHECKPOINT_SPEED_LATEST = f"{CHECKPOINT_ROOT}/speed_v2_latest"
 CHECKPOINT_SPEED_5MIN = f"{CHECKPOINT_ROOT}/speed_v2_5min"
