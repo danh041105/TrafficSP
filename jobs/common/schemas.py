@@ -115,6 +115,19 @@ SILVER_INGEST_AUDIT_FIELDS = {
 # Producer: dùng field_names() để chọn cột gửi đi.
 # Spark:    dùng to_ddl() làm schema cho from_json.
 
+# Bản ghi traffic do giờ DST lặp/không tồn tại, thiếu khóa
+SILVER_TRAFFIC_QUARANTINE_FIELDS = {
+    "link_id": "bigint",
+    "date": "date",                # ngày theo giờ New York
+    "hour": "int",
+    "speed": "double",
+    "travel_time": "bigint",
+    "reason": "string",            # dst_duplicated / dst_nonexistent / missing_key
+    "run_id": "string",
+    "kafka_partition": "int",
+    "kafka_offset": "bigint",
+    "processed_ts": "timestamp",
+}
 def field_names(fields: dict) -> list[str]:
     return list(fields)
 

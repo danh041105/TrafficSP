@@ -343,7 +343,42 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource
     volumes:
-      - ./docker-data/grafana:/var/lib/grafana  
+      - ./docker-data/grafana:/var/lib/grafana
+      - ./conf/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # Kafka exporter: đổi thông tin topic/partition/offset của Kafka sang metrics Prometheus
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.9.0
+    container_name: traffic-kafka-exporter
+    hostname: kafka-exporter
+    command:
+      - --kafka.server=kafka:29092
+      - --kafka.version=3.6.0   # mặc định 2.0.0 quá cũ so với Kafka 4.x
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # Prometheus: chỉ thu thập metrics Kafka và Spark, Grafana đọc qua datasource "Prometheus"
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: traffic-prometheus
+    hostname: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle      # cho phép nạp lại config: curl -X POST localhost:9090/-/reload
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     restart: unless-stopped
     networks:
       - traffic-net
@@ -391,3 +426,5 @@ volumes:
   kafka_data:
     name: traffic_kafka_data
   cloudbeaver_workspace:
+  prometheus_data:
+    name: traffic_prometheus_data

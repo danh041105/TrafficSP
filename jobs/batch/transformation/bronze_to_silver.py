@@ -1,25 +1,23 @@
-"""Bronze -> Silver: weather_cleaned, link_info, traffic_cleaned và nhật ký ingest_audit.
-
-Ngày truyền vào là ngày theo giờ New York, tính cả hai đầu. Ví dụ:
-  spark-submit .../bronze_to_silver.py --start-date 2025-01-01 --end-date 2025-09-30
-  spark-submit .../bronze_to_silver.py --start-date 2025-10-05 --steps weather,traffic
-"""
+# Bronze -> Silver: weather_cleaned, link_info, traffic_cleaned và ingest_audit.
+# Ngày truyền vào là ngày theo giờ New York
+# Lệnh chạy: 
+#  spark-submit .../bronze_to_silver.py --start-date 2025-01-01 --end-date 2025-09-30
+#  spark-submit .../bronze_to_silver.py --start-date 2025-10-05 --steps weather,traffic
 import argparse
 import uuid
 from datetime import date
 from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame, functions as F
 from common.config import (BRONZE_TRAFFIC_TABLE, BRONZE_WEATHER_TABLE, SILVER_TRAFFIC_CLEANED, SILVER_WEATHER_CLEANED,
-                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT)
+                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE)
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
-                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS)
+                            SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS)
 from common.spark_session import build_spark
 from common.logger import get_logger
 from common.data_cleaning import (cast_traffic, parsed_traffic_time, drop_null_keys,
-                                  drop_dst_repeated_hours, deduplicate, parse_weather_time)
+                                  drop_dst_duplicated_hours, deduplicate,dst_reason, parse_weather_time)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
                                                 assign_nearest_cell)
-
 STEPS = ["weather", "link_info", "traffic"]
 CACHE = StorageLevel.MEMORY_AND_DISK
 
@@ -91,10 +89,25 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     raw = (parsed_traffic_time(cast_traffic(bronze))
            .filter(F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date")))
            .persist(CACHE))
-    cleaned = drop_dst_repeated_hours(drop_null_keys(raw, ["link_id", "traffic_utc"]))
+    # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025
+    # hoặc khoảng năm nếu giao nhau giữa 2 năm: ví dụ 2025 và 2026
+    years = tuple(range(int(start[:4]), int(end[:4]) + 1))
+    cleaned = drop_dst_duplicated_hours(drop_null_keys(raw, ["link_id", "traffic_utc"]), years)
     silver = deduplicate(cleaned, ["link_id", "traffic_utc"]).persist(CACHE)
 
-    # Xóa đúng các ngày đang xử lý rồi ghi lại -> chạy lại bao nhiêu lần cũng không sinh trùng
+    # Quarantine: dòng bị loại vì giờ DST (lặp/không tồn tại) hoặc thiếu link_id. 
+    missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))
+    quarantine = (raw.withColumn("reason", F.coalesce(dst_reason(years), missing_key))
+                     .filter(F.col("reason").isNotNull()))
+
+    # Xóa đúng các ngày đang xử lý rồi ghi lại -> tránh việc chạy lại sẽ bị trùng
+    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_QUARANTINE} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
+    conform(quarantine.withColumn("processed_ts", F.current_timestamp()),
+            SILVER_TRAFFIC_QUARANTINE_FIELDS).writeTo(SILVER_TRAFFIC_QUARANTINE).append()
+    for r in quarantine.groupBy("reason").count().collect():
+        log.info("[traffic] quarantine %s: %d dòng", r["reason"], r["count"])
+
+    # Xóa đúng các ngày đang xử lý rồi ghi lại -> -> tránh việc chạy lại sẽ bị trùng
     spark.sql(f"DELETE FROM {SILVER_TRAFFIC_CLEANED} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
     out = conform(silver.withColumn("processed_ts", F.current_timestamp()), SILVER_TRAFFIC_FIELDS)
     out.writeTo(SILVER_TRAFFIC_CLEANED).append()
