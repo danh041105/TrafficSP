@@ -40,6 +40,8 @@ SILVER_TRAFFIC_CLEANED = "lakehouse.silver.traffic_cleaned"
 SILVER_WEATHER_CLEANED = "lakehouse.silver.weather_cleaned"
 SILVER_LINK_INFO = "lakehouse.silver.link_info"
 SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
+# bổ sung 1 bảng traffic quarantine
+SILVER_TRAFFIC_QUARANTINE = "lakehouse.silver.traffic_quarantine"
 
 # Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
 CHECKPOINT_TRAFFIC = "s3a://lakehouse/checkpoints/batch_layer/traffic_raw"
@@ -57,5 +59,13 @@ TRIGGER_INTERVAL = "30 seconds"
 WEATHER_PHASE_BOUNDARY_UTC = "2025-10-01T04:00"
 
 # Speed layer
-REALTIME_NAMESPACE = "lakehouse.realtime"
-# các table trong namespace realtime
+SPEED_UI_PORT = 4041
+SPEED_NAMESPACE = "lakehouse.speed"
+# các table trong namespace speed
+SPEED_TRAFFIC_5MIN = "lakehouse.speed.traffic_5min"
+SPEED_TRAFFIC_LATEST = "lakehouse.speed.traffic_latest"
+SPEED_WEATHER_OBS = "lakehouse.speed.weather_obs"
+
+# Checkpoint của speed layer
+CHECKPOINT_SPEED_TRAFFIC = "s3a://lakehouse/checkpoints/speed_layer/speed_traffic"
+CHECKPOINT_SPEED_WEATHER = "s3a://lakehouse/checkpoints/speed_layer/speed_weather"

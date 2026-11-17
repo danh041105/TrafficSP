@@ -1,7 +1,7 @@
 from common.config import (SILVER_NAMESPACE, SILVER_TRAFFIC_CLEANED, SILVER_WEATHER_CLEANED,
-                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT)
+                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE)
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS, SILVER_LINK_INFO_FIELDS,
-                            SILVER_INGEST_AUDIT_FIELDS, to_ddl)
+                            SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS, to_ddl)
 from common.spark_session import build_spark
 from pyspark.sql import SparkSession
 
@@ -33,7 +33,8 @@ def main():
     create_table(spark, SILVER_WEATHER_CLEANED, SILVER_WEATHER_FIELDS)
     create_table(spark, SILVER_LINK_INFO, SILVER_LINK_INFO_FIELDS)
     create_table(spark, SILVER_INGEST_AUDIT, SILVER_INGEST_AUDIT_FIELDS)
-
+    # bổ sung tạo bảng traffic quarantine
+    create_table(spark, SILVER_TRAFFIC_QUARANTINE, SILVER_TRAFFIC_QUARANTINE_FIELDS)
     # Kiểm tra
     spark.sql(f"SHOW TABLES IN {SILVER_NAMESPACE}").show()
     spark.sql(f"DESCRIBE TABLE {SILVER_TRAFFIC_CLEANED}").show(50, truncate=False)
