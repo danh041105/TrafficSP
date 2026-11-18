@@ -6,6 +6,8 @@ from common.spark_session import build_spark
 from pyspark.sql import SparkSession
 
 # Hàm tạo các table trong namespace
+# write.metadata.delete-after-commit.enabled: Tự xóa file metadata cũ sau mỗi commit
+# write.metadata.previous-versions-max: Giữ 50 version metadata gần nhất
 def create_table(spark: SparkSession, table: str, fields: dict, partition_by: str | None = None):
     # kết hợp 2 dict với nhau
     all_fields = {**fields, **METADATA_FIELDS}

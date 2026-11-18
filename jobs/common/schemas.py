@@ -131,6 +131,48 @@ SILVER_TRAFFIC_QUARANTINE_FIELDS = {
     "processed_ts": "timestamp",
 }
 
+
+# ----------------- STREAMING(SPEED_LAYER) ----------------------
+
+AGG_TRAFFIC_MEASURES = {
+    "sum_speed": "double",             # 
+    "sum_speed_sq": "double",
+    "sum_travel_time": "bigint",
+    "min_speed": "double",
+    "max_speed": "double",
+}
+SPEED_TRAFFIC_5MIN_FIELDS = {
+    "link_id": "bigint",
+    "window_start_utc": "timestamp",
+    "window_end_utc": "timestamp",
+    "avg_speed": "double",
+    "quality_flag": "string",
+    "kafka_ts_max": "timestamp", # message cuối của cửa sổ vào Kafka lúc nào (đo độ trễ)
+    "processed_at": "timestamp"
+}
+
+SPEED_TRAFFIC_LATEST_FIELDS = {
+    "link_id": "string",
+    
+}
+
+SPEED_WEATHER_OBS_FIELDS = {
+    "cell_id": "string", 
+    "time_utc": "timestamp",
+    "temperature_2m": "double", 
+    "relative_humidity_2m": "int", 
+    "precipitation": "double", 
+    "snowfall": "double",
+    "wind_speed_10m": "double", 
+    "wind_gusts_10m": "double", 
+    "weather_code": "int",
+    "run_id": "string", 
+    "kafka_partition": "int", 
+    "kafka_offset": "bigint", 
+    "kafka_ts": "timestamp",
+    "processed_at": "timestamp",
+}
+
 def field_names(fields: dict) -> list[str]:
     return list(fields)
 

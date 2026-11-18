@@ -66,6 +66,25 @@ SPEED_TRAFFIC_5MIN = "lakehouse.speed.traffic_5min"
 SPEED_TRAFFIC_LATEST = "lakehouse.speed.traffic_latest"
 SPEED_WEATHER_OBS = "lakehouse.speed.weather_obs"
 
+# Cấu hình các tham số của speed_layer:
+# mỗi 30s Spark sẽ lấy toàn bộ message mới trong Kafka và đẩy vào speed layer
+SPEED_TRIGGER = "30 seconds"
+# Số lượng message tối đa được lấy mỗi 30s
+SPEED_MAX_OFFSETS_PER_TRIGGER = 100_000
+SPEED_STARTING_OFFSETS = "earliest"
+SPEED_WINDOW = "5 minutes"
+
+SPEED_SHUFFLE_PARTITIONS = "8" # Giới hạn số lượng shuffle partition của spark khi thực hiện các phép tính toán + tổng hợp
+
+# mấy cái config dell giải thích được (để khải giải thích)
+FREE_FLOW_PERCENTILE = 0.85
+FREE_FLOW_BASELINE_HOURS = (22, 23, 0, 1, 2, 3, 4, 5)
+FREE_FLOW_MIN_SAMPLES = 100
+
+# T_Batch(tên tối nghĩa vcl để khải sửa lại)
+# Thêm các config T_batch vào đây đi.
+
+
 # Checkpoint của speed layer
 CHECKPOINT_SPEED_TRAFFIC = "s3a://lakehouse/checkpoints/speed_layer/speed_traffic"
 CHECKPOINT_SPEED_WEATHER = "s3a://lakehouse/checkpoints/speed_layer/speed_weather"
