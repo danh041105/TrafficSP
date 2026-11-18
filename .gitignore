@@ -7,3 +7,10 @@ minio.license
 agent/
 .gitignore
 .claude/
+
+
+
+
+
+
+*.md

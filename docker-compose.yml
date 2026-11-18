@@ -360,10 +360,16 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
     ports:
-      - "8088:8080"
+      - "127.0.0.1:8088:8080"
     volumes:
       - ./conf/trino/catalog:/etc/trino/catalog:ro
     mem_limit: 3g
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/lib/trino/bin/health-check"]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 6
     depends_on:
       postgresql:
         condition: service_healthy
@@ -375,10 +381,19 @@ services:
 
   cloudbeaver:
     image: dbeaver/cloudbeaver:26.2.4
+    environment:
+      - CB_SERVER_NAME=TrafficSP
+      - CB_SERVER_URL=http://localhost:8978
+      - CB_ADMIN_NAME=${CLOUDBEAVER_ADMIN_USER:-cbadmin}
+      - CB_ADMIN_PASSWORD=${CLOUDBEAVER_ADMIN_PASSWORD:-}
+      - CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED=false
     ports:
       - "127.0.0.1:8978:8978"
     volumes:
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+    depends_on:
+      trino:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - traffic-net
