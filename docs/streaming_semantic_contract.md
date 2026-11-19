@@ -14,7 +14,7 @@ Hợp đồng chung cho Speed Layer, Batch Layer và Serving Layer (Trino). Mọ
 
 Bản ghi DST mơ hồ hoặc không tồn tại **không bị xoá âm thầm**:
 - Speed: loại khỏi cửa sổ 5 phút và khỏi latest; được đếm trong `speed_batch_stats.jsonl` (`n_dst_ambiguous`, `n_dst_nonexistent`).
-- Batch: không vào `silver.traffic_cleaned`, được ghi sang `silver.traffic_quarantine` (`reason = dst_ambiguous | dst_nonexistent | missing_key`).
+- Batch: không vào `silver.traffic_cleaned`, được ghi sang `silver.traffic_quarantine` (`reason = dst_duplicated | dst_nonexistent | missing_key`).
 
 ## 2. Chất lượng
 

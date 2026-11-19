@@ -1,7 +1,11 @@
-# Tạo namespace + bảng Gold (Batch View, baseline, lambda_control) trên Iceberg. Idempotent:
+# Tạo namespace + bảng Gold trên Iceberg. Idempotent. Hai nhóm bảng, không trùng tên:
+#   1. Mô hình sao (dim_* / fact_*): định nghĩa trong gold.sql (cùng thư mục), chỉ CREATE IF NOT EXISTS.
+#   2. Bảng Lambda (Batch View 5 phút / 1 giờ, link_baseline, lambda_control) dưới đây:
 #   - CREATE TABLE IF NOT EXISTS; bảng đã có thì chỉ TIẾN HOÁ schema (thêm cột thiếu / đổi tên cột cũ), không DROP.
 #   - Bảng Batch View có tag `published` (Trino đọc Batch View qua tag này - xem docs/lambda_handoff.md).
 # Chạy: docker exec traffic-spark-master /opt/spark/bin/spark-submit /opt/spark/jobs/ddl/gold.py
+from pathlib import Path
+
 from pyspark.sql import SparkSession
 
 from common import config
@@ -63,9 +67,18 @@ def ensure_tag(spark: SparkSession, table: str, tag: str):
         spark.sql(f"ALTER TABLE {table} REPLACE TAG `{tag}` AS OF VERSION {_ref(spark, table, 'main')}")
 
 
+def run_sql_file(spark: SparkSession, path: Path):
+    """Chạy các câu lệnh trong gold.sql (mô hình sao). File chỉ có comment cả dòng và không có ';' trong chuỗi."""
+    sql = "\n".join(line for line in path.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("--"))
+    for statement in sql.split(";"):
+        if statement.strip():
+            spark.sql(statement.strip())
+
+
 def main():
     spark = build_spark("ddl_gold")
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {config.GOLD_NAMESPACE}")
+    run_sql_file(spark, Path(__file__).with_suffix(".sql"))     # dim_* / fact_* (gold.sql)
     # Schema chỉ chứa VIEW Trino (jobs/serving/trino_views.sql). Spark tạo schema để Trino không cần quyền tạo schema.
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {config.SERVING_SCHEMA}")
     # Phân vùng theo NGÀY UTC: Batch View ghi lại từng ngày (overwritePartitions) -> chạy lại không sinh trùng

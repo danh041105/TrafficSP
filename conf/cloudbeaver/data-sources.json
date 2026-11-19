@@ -1,0 +1,24 @@
+{
+  "connections": {
+    "traffic-lakehouse-trino": {
+      "provider": "generic",
+      "driver": "trino_jdbc",
+      "name": "Traffic Lakehouse (Trino)",
+      "description": "Query Bronze, Silver and Gold Iceberg tables. Spark owns all lakehouse writes.",
+      "save-password": false,
+      "read-only": true,
+      "configuration": {
+        "host": "trino",
+        "port": "8080",
+        "database": "lakehouse/gold",
+        "url": "jdbc:trino://trino:8080/lakehouse/gold",
+        "configurationType": "URL",
+        "type": "dev",
+        "auth-model": "native",
+        "auth-properties": {
+          "userName": "traffic_sql"
+        }
+      }
+    }
+  }
+}

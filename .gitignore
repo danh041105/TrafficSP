@@ -11,3 +11,4 @@ CLAUDE.md
 # Kết quả chạy/đối chiếu/benchmark và log Airflow sinh ra lúc chạy
 logs/
 airflow/logs/
+*.md

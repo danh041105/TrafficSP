@@ -22,7 +22,7 @@ services:
       - AIRFLOW_DB_PASSWORD=${AIRFLOW_DB_PASSWORD}
       - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./conf/postgres-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -92,6 +92,7 @@ services:
       - ./docker-data/lakehouse:/opt/lakehouse   # cùng thư mục làm việc với spark-master (logs, ml_models)
     ports:
       - "4040:4040"     # Spark UI của job đang chạy
+      - "4041:4041"     # Spark UI cho speed layer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
       interval: 30s
@@ -130,8 +131,8 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     command: minio server /data --console-address ":9001" --license /minio.license
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:9000/minio/health/live" ]
@@ -191,7 +192,7 @@ services:
       - KAFKA_LOG_DIRS=/var/lib/kafka/data
       - KAFKA_HEAP_OPTS=-Xmx1G -Xms1G
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     volumes:
       - kafka_data:/var/lib/kafka/data #Lưu trên wsl2, log segment của Kafka ghi lên bind mount Windows dễ lỗi
     healthcheck:
@@ -272,6 +273,8 @@ services:
       --host spark-master --port 7077 --webui-port 8080
     environment:
       - KAFKA_BOOTSTRAP=kafka:29092
+      - PYTHONPATH=/opt/spark/jobs
+      - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
@@ -351,7 +354,42 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource
     volumes:
-      - ./docker-data/grafana:/var/lib/grafana  
+      - ./docker-data/grafana:/var/lib/grafana
+      - ./conf/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # Kafka exporter: đổi thông tin topic/partition/offset của Kafka sang metrics Prometheus
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.9.0
+    container_name: traffic-kafka-exporter
+    hostname: kafka-exporter
+    command:
+      - --kafka.server=kafka:29092
+      - --kafka.version=3.6.0   # mặc định 2.0.0 quá cũ so với Kafka 4.x
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # Prometheus: chỉ thu thập metrics Kafka và Spark, Grafana đọc qua datasource "Prometheus"
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: traffic-prometheus
+    hostname: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle      # cho phép nạp lại config: curl -X POST localhost:9090/-/reload
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     restart: unless-stopped
     networks:
       - traffic-net
@@ -366,12 +404,18 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
     ports:
-      - "8088:8080"
+      - "127.0.0.1:8088:8080"
     volumes:
       - ./conf/trino/catalog:/etc/trino/catalog:ro
       - ./conf/trino/access:/etc/trino/access:ro      # quyền: chỉ đọc dữ liệu, chỉ tạo VIEW trong schema serving
       - ./jobs/serving:/opt/trino-sql:ro              # trino_views.sql (Serving Layer)
     mem_limit: 3g
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/lib/trino/bin/health-check"]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 6
     depends_on:
       postgresql:
         condition: service_healthy
@@ -383,10 +427,19 @@ services:
 
   cloudbeaver:
     image: dbeaver/cloudbeaver:26.2.4
+    environment:
+      - CB_SERVER_NAME=TrafficSP
+      - CB_SERVER_URL=http://localhost:8978
+      - CB_ADMIN_NAME=${CLOUDBEAVER_ADMIN_USER:-cbadmin}
+      - CB_ADMIN_PASSWORD=${CLOUDBEAVER_ADMIN_PASSWORD:-}
+      - CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED=false
     ports:
       - "127.0.0.1:8978:8978"
     volumes:
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+    depends_on:
+      trino:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - traffic-net
@@ -401,3 +454,5 @@ volumes:
   kafka_data:
     name: traffic_kafka_data
   cloudbeaver_workspace:
+  prometheus_data:
+    name: traffic_prometheus_data

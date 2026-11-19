@@ -40,6 +40,8 @@ SILVER_TRAFFIC_CLEANED = "lakehouse.silver.traffic_cleaned"
 SILVER_WEATHER_CLEANED = "lakehouse.silver.weather_cleaned"
 SILVER_LINK_INFO = "lakehouse.silver.link_info"
 SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
+# bổ sung 1 bảng traffic quarantine
+SILVER_TRAFFIC_QUARANTINE = "lakehouse.silver.traffic_quarantine"
 
 # Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
 # Gốc mặc định trên MinIO (s3a); biến môi trường CHECKPOINT_ROOT đổi được gốc (vd chạy thử/benchmark) mà không sửa code.
@@ -78,6 +80,7 @@ SPEED_STARTING_OFFSETS = os.getenv("SPEED_STARTING_OFFSETS", "earliest")
 SPEED_WATERMARK = os.getenv("SPEED_WATERMARK", "10 minutes")
 SPEED_WINDOW = "5 minutes"
 SPEED_SHUFFLE_PARTITIONS = os.getenv("SPEED_SHUFFLE_PARTITIONS", "8")
+SPEED_UI_PORT = 4041                                         # Spark UI của Speed Layer (compose map cổng 4041)
 # Latest reading được coi là STALE nếu cũ hơn đồng hồ sự kiện (event_time lớn nhất toàn mạng) quá ngưỡng này
 STALE_AFTER_MINUTES = int(os.getenv("STALE_AFTER_MINUTES", "15"))
 # Free-flow (D-18): p85 tốc độ hợp lệ lúc khô, 22:00-05:59 giờ New York, cần >= 100 mẫu
@@ -97,7 +100,6 @@ GOLD_TRAFFIC_5MIN = "lakehouse.gold.traffic_5min_batch"
 GOLD_TRAFFIC_HOURLY = "lakehouse.gold.traffic_hourly"
 GOLD_LINK_BASELINE = "lakehouse.gold.link_baseline"
 GOLD_LAMBDA_CONTROL = "lakehouse.gold.lambda_control"        # nhật ký trạng thái handoff (append-only)
-SILVER_TRAFFIC_QUARANTINE = "lakehouse.silver.traffic_quarantine"
 
 # Lambda handoff: Trino đọc Batch View qua TAG này (trỏ tới snapshot đã kiểm chứng), không đọc nhánh main
 LAMBDA_PUBLISHED_TAG = "published"
