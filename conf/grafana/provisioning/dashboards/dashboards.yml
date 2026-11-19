@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: traffic-monitoring
+    folder: Monitoring
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true   # sửa trên UI được, nhưng muốn giữ lâu dài thì export JSON ghi đè vào conf/grafana/dashboards
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

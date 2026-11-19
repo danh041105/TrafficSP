@@ -346,3 +346,9 @@ Build image và chạy:
 ```bash
 docker compose up -d --build
 ```
+
+## 7. Monitoring (Prometheus + Grafana)
+
+- Tổng kết dễ hiểu: [docs/monitoring-tong-ket.md](docs/monitoring-tong-ket.md)
+- Hướng dẫn kỹ thuật chi tiết: [docs/monitoring.md](docs/monitoring.md)
+- Demo 1 lệnh: `bash scripts/monitoring_demo/run_demo.sh up` rồi mở http://localhost:3001

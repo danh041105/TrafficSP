@@ -347,7 +347,10 @@ services:
       - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource
     volumes:
       - ./docker-data/grafana:/var/lib/grafana
-      - ./conf/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./conf/grafana/provisioning:/etc/grafana/provisioning:ro   # datasource Prometheus + khai báo thư mục dashboard
+      - ./conf/grafana/dashboards:/etc/grafana/dashboards:ro       # file JSON dashboard (Kafka, Spark)
+    depends_on:
+      - prometheus
     restart: unless-stopped
     networks:
       - traffic-net
@@ -360,6 +363,8 @@ services:
     command:
       - --kafka.server=kafka:29092
       - --kafka.version=3.6.0   # mặc định 2.0.0 quá cũ so với Kafka 4.x
+    ports:
+      - "127.0.0.1:9308:9308"   # xem thử metric: curl localhost:9308/metrics
     depends_on:
       kafka:
         condition: service_healthy
@@ -380,8 +385,11 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # mount cả thư mục: Docker Desktop (Mac/Windows) mount từng file thì sửa xong container vẫn đọc bản cũ/bị cắt cụt
+      - ./conf/prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
+    depends_on:
+      - kafka-exporter
     restart: unless-stopped
     networks:
       - traffic-net
