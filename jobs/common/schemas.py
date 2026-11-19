@@ -111,6 +111,7 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "max_ingest_ts": "timestamp",
     "n_bronze_rows": "bigint",     # số dòng đọc từ Bronze
     "n_duplicates": "bigint",      # số dòng trước khử trùng − số dòng ngay sau khử trùng
+    "n_invalid": "bigint",         # số dòng bị lọc trước khử trùng (thiếu khóa, giờ DST, status -101)
     "n_silver_rows": "bigint",     # số dòng ghi vào Silver
     "processed_ts": "timestamp",   
 }
@@ -131,29 +132,32 @@ SILVER_TRAFFIC_QUARANTINE_FIELDS = {
     "processed_ts": "timestamp",
 }
 
-
 # ----------------- STREAMING(SPEED_LAYER) ----------------------
-
-AGG_TRAFFIC_MEASURES = {
-    "sum_speed": "double",             # 
-    "sum_speed_sq": "double",
-    "sum_travel_time": "bigint",
-    "min_speed": "double",
-    "max_speed": "double",
-}
 SPEED_TRAFFIC_5MIN_FIELDS = {
     "link_id": "bigint",
     "window_start_utc": "timestamp",
-    "window_end_utc": "timestamp",
-    "avg_speed": "double",
-    "quality_flag": "string",
-    "kafka_ts_max": "timestamp", # message cuối của cửa sổ vào Kafka lúc nào (đo độ trễ)
-    "processed_at": "timestamp"
+    "n_records": "bigint",             # Tổng số bản ghi trong 1 cửa sổ
+    "n_valid": "bigint",               # Tổng số bản ghi hợp lệ trong 1 cửa sổ
+    "sum_speed": "double",             # Tổng speed của các bản ghi hợp lệ
+    "sum_travel_time": "bigint",       # Tổng travel_time của các bản ghi hợp lệ
+    "sum_speed_sq": "double",          # Tổng bình phương speed, dùng để tính độ lệch chuẩn
+    "min_speed": "double",             # Speed nhỏ nhất trong các bản ghi hợp lệ của cửa sổ 5p
+    "max_speed": "double",             # Speed lớn nhất trong các bản ghi hợp lệ của cửa sổ 5p
+    "processed_at": "timestamp"        # Thời điểm ghi dòng dữ liệu này.
 }
 
 SPEED_TRAFFIC_LATEST_FIELDS = {
-    "link_id": "string",
-    
+    "link_id": "bigint",
+    "event_time": "timestamp",         # Thời điểm của bản ghi hợp lệ mới nhất
+    "speed": "double",                 # Tốc độ của bản ghi hợp lệ mới nhất
+    "travel_time": "bigint",           # Thời gian di chuyển của bản ghi hợp lệ mới nhất
+    "kafka_offset": "bigint",          # Dùng khi hai bản ghi trùng event_time: offset lớn hơn là bản mới hơn.
+    "kafka_partition": "int",
+    "kafka_ts": "timestamp",
+    "last_seen_time": "timestamp",       # Lần cuối nhận được bản ghi, hợp lệ hay không đều tính
+    "last_seen_valid": "boolean",      # Bản ghi nhận cuối cùng có hợp lệ hay không
+    "invalid_reason": "string",        # Nếu không hợp lệ thì lưu lý do (ví dụ: speed_zero) để hiển thị trên dashboard
+    "updated_at": "timestamp"          # Thời điểm cập nhật dòng dữ liệu này
 }
 
 SPEED_WEATHER_OBS_FIELDS = {
@@ -166,9 +170,8 @@ SPEED_WEATHER_OBS_FIELDS = {
     "wind_speed_10m": "double", 
     "wind_gusts_10m": "double", 
     "weather_code": "int",
-    "run_id": "string", 
-    "kafka_partition": "int", 
-    "kafka_offset": "bigint", 
+    "kafka_offset": "bigint",
+    "kafka_partition": "int",
     "kafka_ts": "timestamp",
     "processed_at": "timestamp",
 }
