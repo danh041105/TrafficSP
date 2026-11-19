@@ -188,9 +188,10 @@ def to_ddl(fields: dict) -> str:
     ddl = ", ".join(columns)
     return ddl
 
-from pyspark.sql import DataFrame, functions as F
 # Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver
-def conform(df: DataFrame, fields: dict) -> DataFrame:
+def conform(df, fields: dict):
+    # Producer imports field definitions without requiring the Spark runtime.
+    from pyspark.sql import functions as F
     return df.select([F.col(c).cast(t).alias(c) for c, t in fields.items()])
 
 # if __name__ == "__main__":

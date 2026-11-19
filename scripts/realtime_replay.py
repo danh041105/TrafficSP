@@ -8,8 +8,13 @@ import heapq
 import time
 from zoneinfo import ZoneInfo
 from common import config
-from kafka_producer import KafkaProducer
-from replay_source import iter_traffic, read_weather
+
+if __package__:
+    from .kafka_producer import KafkaProducer
+    from .replay_source import iter_traffic, read_weather
+else:
+    from kafka_producer import KafkaProducer
+    from replay_source import iter_traffic, read_weather
 
 UTC = dt.timezone.utc
 NY = ZoneInfo(config.TRAFFIC_TIMEZONE)

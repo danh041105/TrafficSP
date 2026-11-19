@@ -7,14 +7,21 @@ import argparse
 import sys
 import time
 from common import config
-from kafka_producer import KafkaProducer
-from replay_source import PHASES, iter_traffic, read_weather
-from realtime_replay import add_realtime_args, run_realtime
+
+if __package__:
+    from .kafka_producer import KafkaProducer
+    from .replay_source import PHASES, iter_traffic, read_weather
+    from .realtime_replay import add_realtime_args, run_realtime
+else:
+    from kafka_producer import KafkaProducer
+    from replay_source import PHASES, iter_traffic, read_weather
+    from realtime_replay import add_realtime_args, run_realtime
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Phát dữ liệu raw vào Kafka")
     parser.add_argument("--phase", required=True, choices=list(PHASES))
+    parser.add_argument("--run-id", help="Optional replay identifier; defaults to the phase name")
     # count-only: chỉ đọc và đếm message, không gửi dữ liệu vào Kafka
     parser.add_argument("--count-only", action="store_true", help="chỉ đọc và đếm message, không gửi Kafka")
     add_realtime_args(parser)
@@ -58,7 +65,7 @@ def run_batch(args, run_id: str) -> bool:
 
 def main():
     args = parse_args()
-    run_id = args.phase   # nhãn run_id trùng tên phase: test / gd1 / gd2
+    run_id = args.run_id or args.phase
     run = run_realtime if PHASES[args.phase]["realtime"] else run_batch
     if not run(args, run_id):
         sys.exit(1)   # mã thoát khác 0: báo cho người chạy (và Airflow sau này) biết là hỏng
