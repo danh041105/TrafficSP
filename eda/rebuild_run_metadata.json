@@ -1,0 +1,120 @@
+{
+  "task": "TASK-20261119-001",
+  "run_id": "rebuild_20261119_001",
+  "phase": "gd1",
+  "traffic_source_months": "2025-01..2025-09",
+  "source_branch": "bacht-final",
+  "checkpoint_strategy": "Reuse existing committed checkpoints; all offsets below were verified equal to Kafka end before replay",
+  "starting_offsets": {
+    "traffic_raw": {
+      "0": 2290026,
+      "1": 2034524,
+      "2": 2579187,
+      "3": 2611763
+    },
+    "weather_raw": {
+      "0": 105680
+    }
+  },
+  "reset_current_rows_removed": {
+    "bronze.traffic_raw": 9515500,
+    "bronze.weather_raw": 105680,
+    "silver.traffic_cleaned": 9480364,
+    "silver.weather_cleaned": 105296,
+    "silver.link_info": 124,
+    "silver.ingest_audit": 1372,
+    "silver.traffic_quarantine": 0
+  },
+  "test_data_cleaning": "PASS",
+  "gold_runtime_tests": "PASS: temp views and real isolated Hadoop Iceberg SCD2/rerun/status/condition integration",
+  "replay": {
+    "status": "PASS",
+    "traffic_messages": 9480364,
+    "weather_messages": 105296,
+    "delivered": 9585660,
+    "delivery_errors": 0,
+    "pending": 0,
+    "elapsed_seconds": 2051
+  },
+  "full_load": "PASS",
+  "trino_service": "running, healthy; six dashboard queries PASS",
+  "gold_ddl": "PASS after fixing semicolon in SQL COMMENT and creating the two remaining tables",
+  "bronze_ingestion": {
+    "status": "PASS",
+    "first_traffic": 8410040,
+    "tail_traffic": 1070324,
+    "total_traffic": 9480364,
+    "weather": 105296
+  },
+  "silver_completed_months": {
+    "2025-01": 813891,
+    "2025-02": 683384,
+    "2025-03": 777248,
+    "2025-04": 746297,
+    "2025-05": 736278,
+    "2025-06": 707889,
+    "2025-07": 779342,
+    "2025-08": 820602,
+    "2025-09": 776998
+  },
+  "silver": {
+    "status": "PASS",
+    "traffic_rows": 6841929,
+    "weather_rows": 105296,
+    "links": 124
+  },
+  "gold_loaded_fact_rows": {
+    "fact_traffic_reading": 6841929,
+    "fact_weather_hourly": 105296,
+    "fact_congestion_hourly": 609091
+  },
+  "completed_local": "2026-11-19T04:21:51.951486+07:00",
+  "gold_table_counts": {
+    "fact_weather_hourly": 105296,
+    "dim_road_link": 124,
+    "dim_hour": 24,
+    "dim_weather_condition": 88,
+    "dim_date": 276,
+    "fact_congestion_hourly": 609091,
+    "dim_weather_grid": 16,
+    "fact_traffic_reading": 6841929
+  },
+  "rerun": {
+    "status": "PASS",
+    "date": "2025-01-01",
+    "traffic_rows": 26336,
+    "congestion_rows": 2315,
+    "new_road_versions": 0
+  },
+  "dashboard_queries": {
+    "D01_daily_borough_trend": {
+      "status": "PASS",
+      "rows": 1365
+    },
+    "D02_congested_road_map": {
+      "status": "PASS",
+      "rows": 50
+    },
+    "D03_matched_wet_dry": {
+      "status": "PASS",
+      "rows": 50
+    },
+    "D04_monthly_weather_by_grid": {
+      "status": "PASS",
+      "rows": 144
+    },
+    "D05_weekday_hour_heatmap": {
+      "status": "PASS",
+      "rows": 840
+    },
+    "D06_daily_coverage": {
+      "status": "PASS",
+      "rows": 1365
+    }
+  },
+  "removed_helpers": [
+    "jobs/batch/ingestion/rebuild_history.py",
+    "scripts/load_history_layers.ps1"
+  ],
+  "temporary_spark_container": "removed after all Spark processes exited"
+}

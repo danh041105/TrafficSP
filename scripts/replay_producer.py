@@ -125,6 +125,7 @@ def send(producer: Producer, topic: str, key: str, msg: dict):
 def parse_args():
     parser = argparse.ArgumentParser(description="Phát dữ liệu raw vào Kafka")
     parser.add_argument("--phase", required=True, choices=list(PHASES))
+    parser.add_argument("--run-id", help="Optional replay identifier; defaults to the phase name")
     parser.add_argument("--speedup", type=float, default=288,
                         help="chỉ dùng cho gd2: 288 nghĩa là 5 phút dữ liệu phát trong ~ 1 giây")
     # count-only: chỉ thực hiện đọc và đếm message chứ không gửi dữ liệu vào kafka 
@@ -135,7 +136,7 @@ def parse_args():
 def main():
     args = parse_args()
     phase = PHASES[args.phase]
-    run_id = args.phase  # nhãn run_id trùng tên phase: test / gd1 / gd2
+    run_id = args.run_id or args.phase
 
     if phase["realtime"] and not args.count_only:
         sys.exit("[producer] gd2 chưa viết (Bước 5). Hiện chỉ chạy được gd2 với --count-only.")

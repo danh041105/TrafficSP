@@ -126,7 +126,7 @@ SELECT COUNT(*) AS traffic_rows FROM lakehouse.silver.traffic_cleaned;
 SELECT COUNT(*) AS gold_rows FROM lakehouse.gold.fact_traffic_reading;
 ```
 
-Máy mới chỉ chạy DDL sẽ có các bảng rỗng, COUNT trả `0` là bình thường. Muốn nạp dữ liệu đến Silver, làm tiếp phần [Nạp mẫu và xây Silver](#2-nạp-mẫu-và-xây-silver) bên dưới, bao gồm chuẩn bị dữ liệu nguồn và môi trường producer. Repo hiện chưa có job nạp Silver → Gold.
+Máy mới chỉ chạy DDL sẽ có các bảng rỗng, COUNT trả `0` là bình thường. Muốn nạp dữ liệu đến Silver, làm tiếp phần [Nạp mẫu và xây Silver](#2-nạp-mẫu-và-xây-silver) bên dưới, bao gồm chuẩn bị dữ liệu nguồn và môi trường producer. Job nạp Silver → Gold nằm ở `jobs/batch/transformation/silver_to_gold.py`; xem phần hướng dẫn load Gold bên dưới.
 
 Trino catalog đang đặt `iceberg.security=read_only`: dùng DBeaver/CloudBeaver để SELECT và xem bảng; chạy DDL, INSERT hoặc MERGE lakehouse bằng Spark SQL.
 
@@ -306,7 +306,7 @@ Trong hộp **Database Authentication**, dùng username `traffic_sql` và để 
 
 CloudBeaver gửi truy vấn qua Trino để đọc cả Bronze, Silver và Gold. Catalog Trino đang đặt `iceberg.security=read_only`, vì vậy chạy DDL và các lệnh ghi bằng Spark SQL. Không cần bật Airflow hoặc cụm Spark master/worker để truy vấn dữ liệu đã lưu.
 
-Kết quả EDA và đề xuất nối Silver → Gold nằm trong [`eda/gold_readiness.md`](eda/gold_readiness.md). Phần này là đề xuất thiết kế; chưa có pipeline chuyển dữ liệu Silver → Gold.
+Kết quả EDA ban đầu nằm trong [`eda/gold_readiness.md`](eda/gold_readiness.md). Mapping hiện hành ở [`eda/silver_gold_column_mapping.csv`](eda/silver_gold_column_mapping.csv); implementation và hướng dẫn load nằm ở phần **Load Gold và truy vấn dashboard** bên dưới.
 
 ## Cấu hình và chạy toàn bộ stack
 
@@ -346,3 +346,45 @@ Build image và chạy:
 ```bash
 docker compose up -d --build
 ```
+
+## Load Gold và truy vấn dashboard
+
+Job `jobs/batch/transformation/silver_to_gold.py` thực thi Spark SQL, giữ timestamp UTC và calendar/hour theo America/New_York. Gold có tám bảng, 63 cột sau khi bỏ `dim_date.is_cbd_tolling`; grid keys dùng STRING cell_id. Bronze → Silver loại status=-101; loader Gold kiểm tra lại filter.
+
+Chiều dài là **ước lượng** median chính xác của `speed_mph * 0.44704 * travel_time_sec` theo link, với speed/time dương và hữu hạn. Latitude/longitude của `silver.link_info` là điểm đại diện cho bản đồ và mapping grid, không phải chiều dài. Free-flow là P85 chính xác (`percentile_cont`) của speed dương trong 00:00–05:59 New York, cùng grid/giờ weather có precipitation=0 và snowfall=0. Kỳ baseline cố định cần giữ nguyên khi rerun một phần dữ liệu. Baseline toàn kỳ 01–09/2025 phục vụ mô tả lịch sử; dự báo/backtest cần kỳ hiệu chuẩn trong quá khứ.
+
+Dùng hàm `Invoke-TrafficSpark` đã định nghĩa phía trên:
+
+```powershell
+Invoke-TrafficSpark spark-submit /opt/spark/jobs/ddl/gold.py
+Invoke-TrafficSpark spark-submit /opt/spark/jobs/tests/test_data_cleaning.py
+Invoke-TrafficSpark spark-submit /opt/spark/jobs/tests/test_silver_to_gold.py --integration
+Invoke-TrafficSpark spark-submit /opt/spark/jobs/batch/transformation/silver_to_gold.py --start-date 2025-01-01 --end-date 2025-09-30 --baseline-start-date 2025-01-01 --baseline-end-date 2025-09-30
+```
+
+`--steps dimensions,traffic,weather,congestion,validate` là mặc định; có thể chọn subset, ví dụ `--steps validate`. Dimensions giữ road/condition keys qua rerun. Road initial snapshot được giả định hiệu lực từ 01/01/2025; thay đổi thuộc tính cần `--effective-date` để mở SCD2 version mới và nạp lại toàn phạm vi facts bị ảnh hưởng. Chạy một writer Gold tại một thời điểm.
+
+Facts được thay thế theo scope tháng: materialize/kiểm tra source trước, DELETE scope rồi INSERT. Hai commit này không phải một giao dịch nguyên tử; nếu dừng giữa chúng, rerun đúng scope để phục hồi. Các tháng ngoài scope không bị xóa. Weather nạp cả buffer hiện có ở Silver. Calendar có cả buffer; is_holiday, owner, elevation, rain và cloud cover giữ NULL khi Silver chưa có nguồn/định nghĩa.
+
+Precipitation tại weather timestamp H biểu diễn [H−1h,H), còn temperature/wind là tại H. Congestion giờ H join weather H một lần sau aggregation, không LAG hoặc SUM precipitation qua reading. Ba SUM congestion cùng tập reading có length/free-flow/time hợp lệ; đó là tổng trên reading quan sát, không phải tổng quãng đường mọi xe.
+
+Bốn SELECT Trino có comment tiếng Việt trong [`jobs/batch/dashboard/dashboard_queries.sql`](jobs/batch/dashboard/dashboard_queries.sql) dùng fact theo **đoạn đường–giờ**: H01 tìm giờ New York có TTI trung bình cao nhất; H02 so sánh mưa/tuyết với khô ráo trong cùng road version–giờ–thứ; H03 mô tả thời tiết khi tắc và tỷ lệ tắc trong từng nhóm thời tiết; H04 liệt kê từng đoạn–giờ tắc cùng weather grid gần nhất. TTI của một đoạn–giờ là `sum_travel_time_sec / sum_free_flow_time_sec`; H01 lấy trung bình các TTI này, mỗi đoạn–giờ quan sát có một phiếu. Ngưỡng tắc `TTI >= 1.5` là tham số dashboard có thể chỉnh trong SQL. So sánh thời tiết là liên hệ quan sát, chưa kết luận nhân quả. Không điền giờ mất reading thành zero congestion. Cách đọc và trọng số chi tiết ở [`eda/dashboard_queries.md`](eda/dashboard_queries.md).
+
+Rebuild có xóa dữ liệu cần được chủ dữ liệu cho phép trước. Chỉ dùng `gold.py --recreate` khi đã được phép drop/purge đúng tám bảng Gold và đã chuẩn bị nạp lại; lệnh init thông thường không cần cờ này. Các job nạp thường ngày không yêu cầu xóa raw files, Kafka topics hoặc checkpoints.
+
+Sau khi Kafka → Bronze hoàn tất và schema Silver đã sẵn sàng, dùng job `bronze_to_silver.py`: chạy weather/link_info một lần, rồi traffic từng tháng để giới hạn bộ nhớ. Ngày traffic tính theo New York. Ví dụ nạp lịch sử 01–09/2025:
+
+```powershell
+Invoke-TrafficSpark spark-submit /opt/spark/jobs/batch/transformation/bronze_to_silver.py --start-date 2025-01-01 --end-date 2025-09-30 --steps 'weather,link_info'
+if ($LASTEXITCODE -ne 0) { throw 'Silver weather/link_info failed' }
+
+foreach ($trafficMonth in 1..9) {
+    $monthStart = [datetime]::new(2025, $trafficMonth, 1)
+    $startDay = $monthStart.ToString('yyyy-MM-dd')
+    $endDay = $monthStart.AddMonths(1).AddDays(-1).ToString('yyyy-MM-dd')
+    Invoke-TrafficSpark spark-submit /opt/spark/jobs/batch/transformation/bronze_to_silver.py --start-date $startDay --end-date $endDay --steps traffic
+    if ($LASTEXITCODE -ne 0) { throw "Silver traffic failed for month $trafficMonth" }
+}
+```
+
+Chỉ chạy lệnh load Gold ở trên sau khi toàn bộ bước Silver hoàn tất thành công. Không phát lại producer nếu Bronze đã có đủ dữ liệu cần xử lý.

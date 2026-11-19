@@ -3,8 +3,9 @@
 from pyspark.sql import functions as F
 
 from common.spark_session import build_spark
-from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys, dst_hours,
+from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys, drop_invalid_status, dst_hours,
                                   dst_reason, drop_dst_duplicated_hours, deduplicate, parse_weather_time)
+from batch.transformation.bronze_to_silver import traffic_in_scope, traffic_quarantine
 
 spark = build_spark("test_data_cleaning")
 
@@ -12,6 +13,20 @@ spark = build_spark("test_data_cleaning")
 assert dst_hours(2025) == [("2025-03-09", 2, "dst_nonexistent"), ("2025-11-02", 1, "dst_duplicated")], dst_hours(2025)
 assert dst_hours(2026) == [("2026-03-08", 2, "dst_nonexistent"), ("2026-11-01", 1, "dst_duplicated")], dst_hours(2026)
 print("DST_HOURS: OK")
+
+# Chỉ loại -101; NULL và mã khác không bị loại theo quy tắc ba giá trị SQL.
+statuses = spark.createDataFrame([(1, -101), (2, 0), (3, None), (4, 7)], "id int, status int")
+assert {r.id for r in drop_invalid_status(statuses).collect()} == {2, 3, 4}
+print("STATUS_FILTER: OK")
+
+# Offset của partition khác không tạo thứ tự toàn cục.
+versions = spark.createDataFrame([
+    ("k", 0, 999, "2025-01-01 00:00:00", "old"),
+    ("k", 1, 1, "2025-01-01 01:00:00", "new"),
+], ["key", "kafka_partition", "kafka_offset", "ingest_ts", "value"])
+versions = versions.withColumn("ingest_ts", F.to_timestamp("ingest_ts"))
+assert deduplicate(versions, ["key"]).first()["value"] == "new"
+print("CROSS_PARTITION_DEDUP: OK")
 
 # ----------------- Traffic -----------------
 cols = ["id", "link_id", "status", "speed", "travel_time", "data_as_of", "kafka_partition", "kafka_offset"]
@@ -66,7 +81,31 @@ for off, exp in expected.items():
     assert actual[off] == exp, f"offset {off}: mong đợi {exp}, nhận {actual[off]}"
 assert "data_as_of" not in df.columns, "data_as_of chưa bị bỏ"
 assert dict(df.dtypes)["link_id"] == "bigint", "link_id chưa ép sang bigint"
+assert parsed.filter(F.col("kafka_offset") == 7).first()["season"] is None
+assert parsed.filter(F.col("kafka_offset") == 1).first()["season"] == "Winter"
+assert parsed.filter(F.col("kafka_offset") == 2).first()["season"] == "Summer"
 print("TRAFFIC: OK")
+
+# Lỗi timestamp vẫn đến quarantine và replay cùng Kafka record không sinh trùng.
+scope_rows = [
+    ("1", "100", "0", 40.0, 60, "2025-01-15T08:00:00", 0, 101),
+    ("1", "100", "0", 40.0, 60, "2025-01-15Tbad", 0, 102),
+    ("1", "100", "0", 40.0, 60, "2025-01-15Tbad", 0, 102),
+    ("1", "100", "0", 40.0, 60, "bad-time", 0, 103),
+    ("1", "100", "0", 40.0, 60, "2025-01-16T08:00:00", 0, 104),
+    ("1", "100", "0", 40.0, 60, "2025-01-16Tbad", 0, 105),
+    ("1", None, "0", 40.0, 60, "2025-01-15T09:00:00", 0, 106),
+]
+scoped = traffic_in_scope(spark.createDataFrame(scope_rows, cols), "2025-01-15", "2025-01-15")
+assert {r.kafka_offset for r in scoped.select("kafka_offset").collect()} == {101, 102, 103, 106}
+quarantined = traffic_quarantine(scoped, (2025,))
+q_rows = quarantined.select("kafka_offset", "date", "reason").collect()
+assert len(q_rows) == 3, q_rows
+assert {r.kafka_offset for r in q_rows} == {102, 103, 106}, q_rows
+assert all(r.reason == "missing_key" for r in q_rows), q_rows
+assert next(r.date for r in q_rows if r.kafka_offset == 102).isoformat() == "2025-01-15"
+assert next(r.date for r in q_rows if r.kafka_offset == 103) is None
+print("QUARANTINE_SCOPE_AND_DEDUP: OK")
 
 # ----------------- Weather -----------------
 w = parse_weather_time(spark.createDataFrame([("40.8787_-73.9972", "2025-10-01T04:00")],

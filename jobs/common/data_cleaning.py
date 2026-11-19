@@ -9,9 +9,19 @@ from datetime import datetime, timedelta
 
 # Bỏ trùng
 def deduplicate(df: DataFrame, key: list[str]) -> DataFrame:
-    # partition sẽ theo link_id và traffic_utc nhé
-    """Mỗi khóa giữ 1 dòng: dòng có kafka_offset lớn nhất (bản được gửi sau cùng)."""
-    window = Window.partitionBy(*key).orderBy(F.col("kafka_offset").desc())
+    """Giữ lần quan sát mới nhất; offset chỉ so sánh được trong một partition.
+
+    ingest_ts cho thứ tự giữa các partition. Partition/offset là tie-break ổn
+    định khi các bản cùng được ingest trong một micro-batch. Không coi offset
+    lớn của partition khác là một bản sửa mới hơn.
+    """
+    ordering = []
+    if "ingest_ts" in df.columns:
+        ordering.append(F.col("ingest_ts").desc_nulls_last())
+    if "kafka_partition" in df.columns:
+        ordering.append(F.col("kafka_partition").desc_nulls_last())
+    ordering.append(F.col("kafka_offset").desc_nulls_last())
+    window = Window.partitionBy(*key).orderBy(*ordering)
     new_df = (df
             .withColumn("_rn", F.row_number().over(window))
             .filter(F.col("_rn") == 1)
@@ -19,9 +29,9 @@ def deduplicate(df: DataFrame, key: list[str]) -> DataFrame:
     )
     return new_df
 
-# Loại bỏ status không hợp lệ: status = -101 là do cảm biến bị lỗi
+# User chốt chỉ loại status = -101; chưa gán nghĩa cho các mã khác.
 def drop_invalid_status(df: DataFrame) -> DataFrame:
-    new_df = df.filter(F.col("status") != -101)
+    new_df = df.filter(F.col("status").isNull() | (F.col("status") != -101))
     return new_df
 
 # Bỏ dòng thiếu cột khóa như link_id, traffic_utc
@@ -51,8 +61,8 @@ def enriched_traffic_time(df: DataFrame) -> DataFrame:
             .withColumn("season", 
                         F.when(F.month("_local_ts").isin(3, 4, 5), "Spring")
                          .when(F.month("_local_ts").isin(6, 7, 8), "Summer")
-                         .when(F.month("_local_Ts").isin(9, 10, 11), "Fall")
-                         .otherwise("Winter")
+                         .when(F.month("_local_ts").isin(9, 10, 11), "Fall")
+                         .when(F.month("_local_ts").isin(12, 1, 2), "Winter")
             )
             .drop("_local_ts", "data_as_of")
     )
@@ -84,7 +94,7 @@ def dst_reason(years=(2025,)) -> Column:
             reason = F.when((F.col("date") == d) & (F.col("hour") == h), F.lit(r)).otherwise(reason)
     return reason
 
-# Bỏ giờ lặp 01:00-01:59 ngày 02/11/2025 (giờ New York) khi hết giờ mùa hè
+# Loại cả giờ local lặp và giờ không tồn tại của các năm được yêu cầu.
 def drop_dst_duplicated_hours(df: DataFrame, years=(2025,)) -> DataFrame:
     new_df = df.filter(dst_reason(years).isNull())
     return new_df

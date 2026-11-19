@@ -67,6 +67,10 @@ def run_weather(spark, job_run_id: str) -> None:
 
 def run_link_info(spark) -> None:
     links = cast_traffic(spark.table(BRONZE_TRAFFIC_TABLE))
+    # Snapshot mô tả road lấy theo event time; replay cũ đến sau không được
+    # ghi đè thuộc tính của một sự kiện mới hơn.
+    latest_event = links.groupBy("link_id").agg(F.max("data_as_of").alias("data_as_of"))
+    links = links.join(latest_event, ["link_id", "data_as_of"], "inner")
     links = deduplicate(links, ["link_id"])                      # bản mới nhất của mỗi link
     links = clean_link_points(links)
     links = drop_null_keys(links, ["link_id", "link_points"])
@@ -79,12 +83,36 @@ def run_link_info(spark) -> None:
     log.info("[link_info] đã ghi %d link", spark.table(SILVER_LINK_INFO).count())
 
 
+def traffic_in_scope(bronze: DataFrame, start: str, end: str) -> DataFrame:
+    """Giữ cả lỗi timestamp để quarantine thay vì bỏ qua do date=NULL.
+
+    Caller đã lọc event_month. Khi cả timestamp và date prefix đều hỏng, chỉ
+    biết tháng nguồn: quarantine có thể bao gồm lỗi không định ngày trong
+    các tháng chạm vào bởi một lần chạy phạm vi ngày nhỏ hơn tháng.
+    """
+    scoped = bronze.withColumn("_source_date", F.to_date(F.substring("data_as_of", 1, 10)))
+    raw = enriched_traffic_time(cast_traffic(scoped))
+    in_dates = F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
+    malformed_in_scope = F.col("date").isNull() & (
+        F.col("_source_date").isNull()
+        | F.col("_source_date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
+    )
+    return raw.filter(in_dates | malformed_in_scope)
+
+
+def traffic_quarantine(raw: DataFrame, years: tuple[int, ...]) -> DataFrame:
+    missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))
+    quarantine = (raw.withColumn("reason", F.coalesce(dst_reason(years), missing_key))
+                     .filter(F.col("reason").isNotNull())
+                     .withColumn("date", F.coalesce(F.col("date"), F.col("_source_date"))))
+    # Một lỗi nguồn chỉ ghi một lần dù Kafka record có mặt nhiều lần ở Bronze.
+    return deduplicate(quarantine, ["kafka_partition", "kafka_offset"])
+
+
 def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     # data_as_of là giờ New York nên event_month cũng theo giờ New York: lọc đúng partition Bronze
     bronze = spark.table(BRONZE_TRAFFIC_TABLE).filter(F.col("event_month").between(start[:7], end[:7]))
-    raw = (enriched_traffic_time(cast_traffic(bronze))
-           .filter(F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date")))
-           .persist(CACHE))
+    raw = traffic_in_scope(bronze, start, end).persist(CACHE)
     # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025
     # hoặc khoảng năm nếu giao nhau giữa 2 năm: ví dụ 2025 và 2026
     years = tuple(range(int(start[:4]), int(end[:4]) + 1))
@@ -97,14 +125,23 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     silver = cleaned.transform(deduplicate, ["link_id", "traffic_utc"]).persist(CACHE)
 
     # Quarantine: dòng bị loại vì giờ DST (lặp/không tồn tại) hoặc thiếu link_id. 
-    missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))
-    quarantine = (raw.withColumn("reason", F.coalesce(dst_reason(years), missing_key))
-                     .filter(F.col("reason").isNotNull()))
+    quarantine = traffic_quarantine(raw, years).persist(CACHE)
 
     # Xóa đúng các ngày đang xử lý rồi ghi lại -> tránh việc chạy lại sẽ bị trùng
     spark.sql(f"DELETE FROM {SILVER_TRAFFIC_QUARANTINE} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
+    # MERGE khóa Kafka làm rerun idempotent cả với lỗi không thể suy date.
+    view = f"traffic_quarantine_{uuid.uuid4().hex}"
     conform(quarantine.withColumn("processed_ts", F.current_timestamp()),
-            SILVER_TRAFFIC_QUARANTINE_FIELDS).writeTo(SILVER_TRAFFIC_QUARANTINE).append()
+            SILVER_TRAFFIC_QUARANTINE_FIELDS).createOrReplaceTempView(view)
+    try:
+        spark.sql(f"""
+            MERGE INTO {SILVER_TRAFFIC_QUARANTINE} t USING {view} s
+            ON t.kafka_partition <=> s.kafka_partition AND t.kafka_offset <=> s.kafka_offset
+            WHEN MATCHED THEN UPDATE SET *
+            WHEN NOT MATCHED THEN INSERT *
+        """)
+    finally:
+        spark.catalog.dropTempView(view)
     for r in quarantine.groupBy("reason").count().collect():
         log.info("[traffic] quarantine %s: %d dòng", r["reason"], r["count"])
 
@@ -117,6 +154,7 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     log.info("[traffic] %s -> %s: đã ghi %d dòng", start, end, silver.count())
     raw.unpersist()
     silver.unpersist()
+    quarantine.unpersist()
 
 def main():
     parser = argparse.ArgumentParser(description="Bronze -> Silver")
