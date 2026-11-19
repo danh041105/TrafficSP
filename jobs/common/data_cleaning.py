@@ -51,7 +51,7 @@ def enriched_traffic_time(df: DataFrame) -> DataFrame:
             .withColumn("season", 
                         F.when(F.month("_local_ts").isin(3, 4, 5), "Spring")
                          .when(F.month("_local_ts").isin(6, 7, 8), "Summer")
-                         .when(F.month("_local_Ts").isin(9, 10, 11), "Fall")
+                         .when(F.month("_local_ts").isin(9, 10, 11), "Fall")
                          .otherwise("Winter")
             )
             .drop("_local_ts", "data_as_of")
