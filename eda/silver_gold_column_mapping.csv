@@ -1,16 +1,15 @@
 gold_table,gold_column,silver_source,transformation,readiness
-dim_date,date_key,calendar generated from all fact UTC bounds,YYYYMMDD of America/New_York full_date,PROPOSED
-dim_date,full_date,traffic_cleaned.traffic_utc + weather_cleaned.weather_utc,Generate continuous local-date calendar covering both sources,PROPOSED
+dim_date,date_key,calendar generated from all fact UTC bounds,YYYYMMDD of America/New_York full_date,APPROVED_MAPPING
+dim_date,full_date,traffic_cleaned.traffic_utc + weather_cleaned.weather_utc,Generate continuous local-date calendar covering both sources,APPROVED_MAPPING
 dim_date,year,dim_date.full_date,year(full_date),DERIVED
 dim_date,month,dim_date.full_date,month(full_date),DERIVED
 dim_date,day_of_week,dim_date.full_date,Fixed weekday-name lookup; Spark Silver uses Sunday=1,DERIVED
 dim_date,is_weekend,dim_date.full_date,True for Saturday or Sunday,DERIVED
 dim_date,is_holiday,no Silver source,Lookup chosen holiday calendar with observed-day policy; NULL until defined,MISSING_CONTRACT
-dim_date,season,dim_date.month,Proposed winter12-2 spring3-5 summer6-8 autumn9-11,PROPOSED
-dim_date,is_cbd_tolling,no Silver source,Proposed program-active date flag from2025-01-05; does not identify charged roads,PROPOSED
-dim_hour,hour_key,generated lookup0-23,Stable key equals hour_24,PROPOSED
-dim_hour,hour_24,generated lookup0-23,Hour of day in America/New_York,PROPOSED
-dim_hour,time_band,dim_hour.hour_24,Proposed night0-5 morning6-9 daytime10-15 evening16-19 late_evening20-23,PROPOSED
+dim_date,season,dim_date.month,Proposed winter12-2 spring3-5 summer6-8 autumn9-11,APPROVED_MAPPING
+dim_hour,hour_key,generated lookup0-23,Stable key equals hour_24,APPROVED_MAPPING
+dim_hour,hour_24,generated lookup0-23,Hour of day in America/New_York,APPROVED_MAPPING
+dim_hour,time_band,dim_hour.hour_24,Proposed night0-5 morning6-9 daytime10-15 evening16-19 late_evening20-23,APPROVED_MAPPING
 dim_road_link,road_link_key,no Silver surrogate,Allocate incremental INT per new SCD2 version; retain on rerun,APPROVED_CONTRACT
 dim_road_link,link_id,link_info.link_id,CAST AS STRING; same business key may have multiple versions,DIRECT
 dim_road_link,transcom_id,traffic_cleaned.transcom_id,Unique nonnull value per retained link and effective version; no arbitrary FIRST,PARTIAL
@@ -18,21 +17,21 @@ dim_road_link,link_name,link_info.link_name,Direct; snapshot does not prove hist
 dim_road_link,borough,link_info.borough,Direct; snapshot does not prove historical versions,DIRECT_SNAPSHOT
 dim_road_link,owner,no Silver source,Bring raw traffic owner through Silver; NULL meanwhile,MISSING_SOURCE_IN_SILVER
 dim_road_link,geometry_wkt,link_info.link_points,Parse lat/lon then LINESTRING(lon lat); validate coordinates and geometry continuity,DERIVED_WITH_QUALITY_GAPS
-dim_road_link,length_m,validated road geometry or future reference,Geodesic sum of consecutive vertices in meters; reject incomplete or anomalous geometry,MISSING_TRUSTED_DERIVATION
-dim_road_link,free_flow_speed_mph,retained traffic_cleaned.speed + mapped weather,Proposed dry00-05:59 NYC P85 positive speed/time per link in frozen calibration period,PROPOSED
+dim_road_link,length_m,traffic_cleaned.speed + traffic_cleaned.travel_time,Exact median(speed*0.44704*travel_time) per link from positive finite readings after status exclusion,APPROVED_EMPIRICAL_ESTIMATE
+dim_road_link,free_flow_speed_mph,retained traffic_cleaned.speed + mapped weather,Exact P85 speed: NYC night00-05; mapped precipitation=0 AND snowfall=0 AND speed>0; fixed baseline dates,APPROVED_EMPIRICAL_BASELINE
 dim_road_link,nearest_grid_key,link_info.cell_id,Keep exact STRING cell_id without recomputing nearest grid,APPROVED_CONTRACT
-dim_road_link,valid_from,no Silver effective-history field,Initial backfill date is explicit snapshot assumption; later detected change date in NYC,PROPOSED
+dim_road_link,valid_from,no Silver effective-history field,Initial backfill date is explicit snapshot assumption; later detected change date in NYC,APPROVED_MAPPING
 dim_road_link,valid_to,no Silver effective-history field,Exclusive next-version start date; NULL for current version,APPROVED_CONTRACT
 dim_weather_grid,grid_key,weather_cleaned.cell_id,Keep exact STRING cell_id,APPROVED_CONTRACT
 dim_weather_grid,latitude,weather_cleaned.latitude,Unique coordinates per cell; SCD1 preserving key,DIRECT
 dim_weather_grid,longitude,weather_cleaned.longitude,Unique coordinates per cell; SCD1 preserving key,DIRECT
 dim_weather_grid,elevation_m,no Silver source,Bring raw weather JSON elevation metadata through Silver; NULL meanwhile,MISSING_SOURCE_IN_SILVER
 dim_weather_condition,condition_key,derived five-band tuple,Stable INT lookup key; reuse tuple key on rerun,DERIVED
-dim_weather_condition,precip_band,weather_cleaned.precipitation,Proposed dry0 light(0;2.5) moderate[2.5;7.5) heavy>=7.5 mm; unknown for invalid,PROPOSED
-dim_weather_condition,snow_band,weather_cleaned.snowfall,Proposed none0 light(0;0.5) moderate[0.5;1) heavy>=1 cm; unknown for invalid,PROPOSED
-dim_weather_condition,wind_band,weather_cleaned.wind_speed_10m,Convert km/h to mph then proposed low[0;5) moderate[5;15) high>=15,PROPOSED
-dim_weather_condition,temp_band,weather_cleaned.temperature_2m,Proposed freezing<0 cold[0;10) mild[10;25) hot>=25 Celsius,PROPOSED
-dim_weather_condition,weather_group,weather_cleaned.weather_code,Proposed WMO grouping0/1clear2/3cloudy plus fog/drizzle/rain/snow/thunderstorm; fallback unknown,PROPOSED
+dim_weather_condition,precip_band,weather_cleaned.precipitation,Proposed dry0 light(0;2.5) moderate[2.5;7.5) heavy>=7.5 mm; unknown for invalid,APPROVED_MAPPING
+dim_weather_condition,snow_band,weather_cleaned.snowfall,Proposed none0 light(0;0.5) moderate[0.5;1) heavy>=1 cm; unknown for invalid,APPROVED_MAPPING
+dim_weather_condition,wind_band,weather_cleaned.wind_speed_10m,Convert km/h to mph then proposed low[0;5) moderate[5;15) high>=15,APPROVED_MAPPING
+dim_weather_condition,temp_band,weather_cleaned.temperature_2m,Proposed freezing<0 cold[0;10) mild[10;25) hot>=25 Celsius,APPROVED_MAPPING
+dim_weather_condition,weather_group,weather_cleaned.weather_code,Proposed WMO grouping0/1clear2/3cloudy plus fog/drizzle/rain/snow/thunderstorm; fallback unknown,APPROVED_MAPPING
 fact_traffic_reading,road_link_key,traffic_cleaned.link_id + dim_road_link,As-of SCD2 lookup by link business key and NYC reading date,LOOKUP
 fact_traffic_reading,reading_ts_utc,traffic_cleaned.traffic_utc,Preserve UTC instant; apply status exclusion before loading,DIRECT_FILTERED
 fact_traffic_reading,date_key,traffic_cleaned.traffic_utc,YYYYMMDD after America/New_York conversion; compare Silver date,DERIVED
@@ -41,7 +40,7 @@ fact_traffic_reading,status,traffic_cleaned.status,CAST AS STRING after excludin
 fact_traffic_reading,speed_mph,traffic_cleaned.speed,CAST AS DOUBLE; source already mph,DIRECT_FILTERED
 fact_traffic_reading,travel_time_sec,traffic_cleaned.travel_time,CAST AS DOUBLE; source already seconds,DIRECT_FILTERED
 fact_weather_hourly,grid_key,weather_cleaned.cell_id,Direct STRING FK to grid,DIRECT
-fact_weather_hourly,hour_start_utc,weather_cleaned.weather_utc,Proposed observation anchor T; accumulated precipitation/snowfall represent previous hour,PROPOSED_TIME_CONVENTION
+fact_weather_hourly,hour_start_utc,weather_cleaned.weather_utc,Proposed observation anchor T; accumulated precipitation/snowfall represent previous hour,IMPLEMENTED_TIME_CONVENTION
 fact_weather_hourly,date_key,weather_cleaned.weather_utc,YYYYMMDD after America/New_York conversion,DERIVED
 fact_weather_hourly,hour_key,weather_cleaned.weather_utc,Local NYC hour0-23,DERIVED
 fact_weather_hourly,condition_key,weather_cleaned row + dim_weather_condition,Classify five bands then stable tuple lookup,LOOKUP
@@ -62,4 +61,4 @@ fact_congestion_hourly,condition_key,fact_weather_hourly.condition_key,Join grid
 fact_congestion_hourly,sum_distance_m,eligible fact_traffic_reading + dim_road_link.length_m,SUM(length_m) over common set also requiring valid travel time and free-flow baseline,AGGREGATE_REQUIRES_LENGTH_AND_BASELINE
 fact_congestion_hourly,sum_travel_time_sec,eligible fact_traffic_reading.travel_time_sec,SUM(travel_time_sec) over common set also requiring valid length and free-flow baseline,AGGREGATE_REQUIRES_LENGTH_AND_BASELINE
 fact_congestion_hourly,sum_free_flow_time_sec,eligible readings + road length_m/free_flow_speed_mph,SUM(length_m/(free_flow_speed_mph*0.44704)) over common set also requiring valid travel time,AGGREGATE_REQUIRES_LENGTH_AND_BASELINE
-fact_congestion_hourly,precip_prev_1h_mm,fact_weather_hourly.precipitation_mm,At weather T=H represents[H-1h;H); join once after aggregation; no extra LAG,PROPOSED_TIME_CONVENTION
+fact_congestion_hourly,precip_prev_1h_mm,fact_weather_hourly.precipitation_mm,At weather T=H represents[H-1h;H); join once after aggregation; no extra LAG,IMPLEMENTED_TIME_CONVENTION

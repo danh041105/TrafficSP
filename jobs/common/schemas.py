@@ -111,6 +111,7 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "max_ingest_ts": "timestamp",
     "n_bronze_rows": "bigint",     # số dòng đọc từ Bronze
     "n_duplicates": "bigint",      # số dòng trước khử trùng − số dòng ngay sau khử trùng
+    "n_invalid": "bigint",         # số dòng bị lọc trước khử trùng (thiếu khóa, giờ DST, status -101)
     "n_silver_rows": "bigint",     # số dòng ghi vào Silver
     "processed_ts": "timestamp",   
 }

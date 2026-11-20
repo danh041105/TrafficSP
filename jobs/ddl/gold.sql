@@ -2,7 +2,7 @@
 -- CREATE IF NOT EXISTS preserves existing tables and data on reruns.
 -- Logical PK/FK and SCD rules are documented, not enforced by Iceberg DDL.
 -- Weather grid keys equal the STRING cell_id already assigned in Silver.
--- Road version keys require incremental allocation by a future load job.
+-- Road version keys are allocated incrementally by silver_to_gold.py.
 -- An INT column is not an automatic identity. Reruns retain existing version keys.
 -- No data is inserted and no existing table schema is migrated by this init.
 
@@ -18,8 +18,7 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_date (
     day_of_week STRING,
     is_weekend BOOLEAN,
     is_holiday BOOLEAN,
-    season STRING,
-    is_cbd_tolling BOOLEAN
+    season STRING
 )
 USING ICEBERG
 COMMENT 'SCD 0 calendar dimension. Existing date attributes are immutable'
@@ -53,7 +52,7 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_weather_condition (
     weather_group STRING
 )
 USING ICEBERG
-COMMENT 'Weather condition band lookup. Classification thresholds require a business contract'
+COMMENT 'Weather condition lookup. Bands and WMO grouping are defined by silver_to_gold.py'
 TBLPROPERTIES ('format-version' = '2', 'write.format.default' = 'parquet');
 
 CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_road_link (
@@ -64,8 +63,8 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_road_link (
     borough STRING,
     owner STRING,
     geometry_wkt STRING COMMENT 'WKT geometry with longitude latitude coordinate order',
-    length_m DOUBLE,
-    free_flow_speed_mph DOUBLE,
+    length_m DOUBLE COMMENT 'Empirical length: exact median of positive speed_mph times 0.44704 times travel_time_sec per link',
+    free_flow_speed_mph DOUBLE COMMENT 'Exact P85 positive speed during NYC night with zero mapped precipitation and snowfall in the fixed baseline period',
     nearest_grid_key STRING COMMENT 'Logical FK to dim_weather_grid.grid_key, directly from silver.link_info.cell_id',
     valid_from DATE NOT NULL COMMENT 'Inclusive start date of this version in the business timezone',
     valid_to DATE COMMENT 'Exclusive end date, NULL denotes the current open version'
@@ -90,7 +89,7 @@ TBLPROPERTIES ('format-version' = '2', 'write.format.default' = 'parquet');
 
 CREATE TABLE IF NOT EXISTS lakehouse.gold.fact_weather_hourly (
     grid_key STRING NOT NULL COMMENT 'Logical PK part and FK to dim_weather_grid.grid_key, equals source cell_id',
-    hour_start_utc TIMESTAMP NOT NULL COMMENT 'Logical PK part, UTC start of represented weather hour',
+    hour_start_utc TIMESTAMP NOT NULL COMMENT 'Logical PK part, UTC observation anchor T, precipitation and snowfall represent the preceding interval [T-1h,T)',
     date_key INT NOT NULL COMMENT 'Logical FK to dim_date.date_key in the business timezone',
     hour_key INT NOT NULL COMMENT 'Logical FK to dim_hour.hour_key in the business timezone',
     condition_key INT NOT NULL COMMENT 'Logical FK to dim_weather_condition.condition_key',
@@ -105,7 +104,7 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.fact_weather_hourly (
 )
 USING ICEBERG
 PARTITIONED BY (months(hour_start_utc))
-COMMENT 'Grain is one weather grid and one UTC hour. Align source accumulation intervals explicitly'
+COMMENT 'Grain is one weather grid and one UTC observation anchor. Accumulations refer to the preceding hour'
 TBLPROPERTIES ('format-version' = '2', 'write.format.default' = 'parquet');
 
 CREATE TABLE IF NOT EXISTS lakehouse.gold.fact_congestion_hourly (
@@ -122,5 +121,5 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.fact_congestion_hourly (
 )
 USING ICEBERG
 PARTITIONED BY (months(hour_start_utc))
-COMMENT 'Grain is one road link version and one UTC traffic hour. Measures require explicit valid-reading rules'
+COMMENT 'Grain is one road link version and one UTC traffic hour. All three sums use the same valid observations and are not vehicle totals'
 TBLPROPERTIES ('format-version' = '2', 'write.format.default' = 'parquet');

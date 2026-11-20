@@ -4,6 +4,7 @@
 #   - CREATE TABLE IF NOT EXISTS; bảng đã có thì chỉ TIẾN HOÁ schema (thêm cột thiếu / đổi tên cột cũ), không DROP.
 #   - Bảng Batch View có tag `published` (Trino đọc Batch View qua tag này - xem docs/lambda_handoff.md).
 # Chạy: docker exec traffic-spark-master /opt/spark/bin/spark-submit /opt/spark/jobs/ddl/gold.py
+import argparse
 from pathlib import Path
 
 from pyspark.sql import SparkSession
@@ -75,8 +76,20 @@ def run_sql_file(spark: SparkSession, path: Path):
             spark.sql(statement.strip())
 
 
+# Bảng mô hình sao của gold.sql: --recreate (của gold-dev) xoá + PURGE rồi tạo lại đúng schema hiện tại.
+STAR_TABLES = ("fact_congestion_hourly", "fact_weather_hourly", "fact_traffic_reading", "dim_road_link",
+               "dim_weather_condition", "dim_weather_grid", "dim_hour", "dim_date")
+
+
 def main():
+    ap = argparse.ArgumentParser(description="Tạo bảng Gold (gold.sql + bảng Lambda)")
+    ap.add_argument("--recreate", action="store_true",
+                    help="xoá/PURGE 8 bảng mô hình sao của gold.sql trước khi tạo lại (KHÔNG đụng bảng Lambda)")
+    args = ap.parse_args()
     spark = build_spark("ddl_gold")
+    if args.recreate:
+        for name in STAR_TABLES:
+            spark.sql(f"DROP TABLE IF EXISTS {config.GOLD_NAMESPACE}.{name} PURGE")
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {config.GOLD_NAMESPACE}")
     run_sql_file(spark, Path(__file__).with_suffix(".sql"))     # dim_* / fact_* (gold.sql)
     # Schema chỉ chứa VIEW Trino (jobs/serving/trino_views.sql). Spark tạo schema để Trino không cần quyền tạo schema.

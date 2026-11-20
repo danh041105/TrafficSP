@@ -12,3 +12,4 @@ CLAUDE.md
 logs/
 airflow/logs/
 *.md
+*.log

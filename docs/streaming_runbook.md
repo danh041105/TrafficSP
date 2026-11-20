@@ -70,11 +70,12 @@ docker exec traffic-spark-master bash /opt/spark/jobs/stream/stop_speed_layer.sh
 ```bash
 mkdir -p logs
 $C run --rm producer python scripts/replay_producer.py --phase gd2 --start 2025-12-15T11:00 --end 2025-12-16T11:00 \
-   --speedup 1440 --summary-file /app/logs/gd2.json
+   --speedup 1440
 ```
 
 - `--speedup 1440`: 1 phút thật bằng 1 ngày dữ liệu. `--speedup 0`: không giới hạn tốc độ.
-- Bất thường có seed: `--dup-fraction 0.05 --ooo-fraction 0.05 --ooo-max-delay-sec 3600 --skew-links 4616340 --skew-copies 10 --seed 7`.
+- Benchmark có nhiễu và tóm tắt JSON dùng script riêng `scripts/benchmark/replay_benchmark.py` (cùng đồng hồ mô phỏng, xem `scripts/realtime_replay.py`):
+  `--dup-fraction 0.05 --ooo-fraction 0.05 --ooo-max-delay-sec 3600 --skew-links 4616340 --skew-copies 10 --seed 7 --summary-file /app/logs/gd2.json`.
 
 ## 5. Batch + Lambda handoff
 
