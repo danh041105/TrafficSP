@@ -104,33 +104,7 @@ def run_link_info(spark) -> None:
     log.info("[link_info] đã ghi %d link", spark.table(SILVER_LINK_INFO).count())
 
 
-def traffic_in_scope(bronze: DataFrame, start: str, end: str) -> DataFrame:
-    """Giữ cả lỗi timestamp để quarantine thay vì bỏ qua do date=NULL.
-
-    Caller đã lọc event_month. Khi cả timestamp và date prefix đều hỏng, chỉ
-    biết tháng nguồn: quarantine có thể bao gồm lỗi không định ngày trong
-    các tháng chạm vào bởi một lần chạy phạm vi ngày nhỏ hơn tháng.
-    """
-    scoped = bronze.withColumn("_source_date", F.to_date(F.substring("data_as_of", 1, 10)))
-    raw = enriched_traffic_time(cast_traffic(scoped))
-    in_dates = F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
-    malformed_in_scope = F.col("date").isNull() & (
-        F.col("_source_date").isNull()
-        | F.col("_source_date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
-    )
-    return raw.filter(in_dates | malformed_in_scope)
-
-
-def traffic_quarantine(raw: DataFrame, years: tuple[int, ...]) -> DataFrame:
-    missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))
-    quarantine = (raw.withColumn("reason", F.coalesce(dst_reason(years), missing_key))
-                     .filter(F.col("reason").isNotNull())
-                     .withColumn("date", F.coalesce(F.col("date"), F.col("_source_date"))))
-    # Một lỗi nguồn chỉ ghi một lần dù Kafka record có mặt nhiều lần ở Bronze.
-    return deduplicate(quarantine, ["kafka_partition", "kafka_offset"])
-
-
-def traffic_in_scope(bronze: DataFrame, start: str, end: str) -> DataFrame:
+def traffic_in_scope(bronze: DataFrame, start: date, end: date) -> DataFrame:
     """Giữ cả lỗi timestamp để quarantine thay vì bỏ qua do date=NULL.
 
     Caller đã lọc event_month. Khi cả timestamp và date prefix đều hỏng, chỉ
@@ -163,16 +137,14 @@ def run_traffic(spark, start: date, end: date, cond: str, job_run_id: str) -> No
     # data_as_of là giờ New York nên event_month cũng theo giờ New York: lọc đúng partition Bronze
     bronze = (spark.table(BRONZE_TRAFFIC_TABLE)
               .filter(F.col("event_month").between(start.strftime("%Y-%m"), end.strftime("%Y-%m"))))
-    raw = (enriched_traffic_time(cast_traffic(bronze))
-           .filter(F.expr(cond))
+    # Dòng có ngày: chỉ giữ phần thỏa cond (theo ngày hoặc theo giờ) để khớp với DELETE bên dưới.
+    # Dòng data_as_of hỏng (date null): giữ lại cho quarantine; quarantine ghi bằng MERGE theo khóa Kafka
+    # nên chạy lại nhiều lần (kể cả theo giờ) cũng không bị trùng.
+    raw = (traffic_in_scope(bronze, start, end)
+           .filter(F.expr(cond) | F.col("date").isNull())
            .persist(CACHE))
     # Các năm của khoảng đang xử lý, vd (2025,) hoặc (2025, 2026) nếu vắt qua năm mới: để tính giờ DST
     years = tuple(range(start.year, end.year + 1))
-    bronze = spark.table(BRONZE_TRAFFIC_TABLE).filter(F.col("event_month").between(start[:7], end[:7]))
-    raw = traffic_in_scope(bronze, start, end).persist(CACHE)
-    # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025
-    # hoặc khoảng năm nếu giao nhau giữa 2 năm: ví dụ 2025 và 2026
-    years = tuple(range(int(start[:4]), int(end[:4]) + 1))
     cleaned = (
         raw
         .transform(drop_null_keys, ["link_id", "traffic_utc"])

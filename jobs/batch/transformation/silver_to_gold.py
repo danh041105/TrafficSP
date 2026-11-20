@@ -1,6 +1,7 @@
 """Load Gold with Spark SQL; run one writer at a time.
 
-Traffic scope is inclusive New York dates, processed one month at a time.
+Traffic scope is inclusive New York dates (--start-date/--end-date) or inclusive
+New York hours (--start-hour/--end-hour), processed one month at a time.
 Weather includes every current Silver hour, including the boundary buffer.
 Road calibration uses explicit, fixed baseline dates independently of fact scope.
 The initial road snapshot is assumed valid from 2025-01-01; subsequent SCD2
@@ -10,7 +11,7 @@ changes require --effective-date and never rewrite an existing version's key.
 from __future__ import annotations
 
 import argparse
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from common.spark_session import build_spark
 
@@ -20,6 +21,7 @@ BAND_COLUMNS = ["precip_band", "snow_band", "wind_band", "temp_band", "weather_g
 ROAD_COLUMNS = ["link_id", "transcom_id", "link_name", "borough", "owner", "geometry_wkt",
                 "length_m", "free_flow_speed_mph", "nearest_grid_key"]
 STEPS = ["dimensions", "traffic", "weather", "congestion", "validate"]
+HOUR_FMT = "%Y-%m-%dT%H"   # 2025-10-05T13 = giờ 13 ngày 05/10 theo giờ New York
 
 
 def month_ranges(start: date, end: date):
@@ -32,6 +34,44 @@ def month_ranges(start: date, end: date):
         current = stop + timedelta(days=1)
 
 
+# Phạm vi xử lý: `date` = trọn ngày NY (như cũ), `datetime` = giờ NY (tính cả hai đầu).
+# Lưu ý datetime là lớp con của date nên phải kiểm tra datetime trước.
+def as_hours(start: date, end: date) -> tuple[datetime, datetime]:
+    s = start if isinstance(start, datetime) else datetime.combine(start, time(0))
+    e = end if isinstance(end, datetime) else datetime.combine(end, time(23))
+    return s, e
+
+
+def scope_ranges(start: date, end: date):
+    """Như month_ranges nhưng giữ giờ đầu/cuối khi phạm vi là datetime."""
+    if not isinstance(start, datetime) and not isinstance(end, datetime):
+        yield from month_ranges(start, end)
+        return
+    s, e = as_hours(start, end)
+    for d0, d1 in month_ranges(s.date(), e.date()):
+        yield (s if d0 == s.date() else datetime.combine(d0, time(0)),
+               e if d1 == e.date() else datetime.combine(d1, time(23)))
+
+
+def hour_range_sql(start: date, end: date, day: str, hour: str, literal) -> str:
+    """Điều kiện trên cặp cột (ngày, giờ) NY. Trọn ngày thì chỉ dùng cột ngày, giống hệt điều kiện cũ.
+    Chỉ so sánh trên cột trần để Iceberg đẩy xuống được (bỏ partition, bỏ file theo min/max)."""
+    s, e = as_hours(start, end)
+    d0, d1 = literal(s.date()), literal(e.date())
+    if s.hour == 0 and e.hour == 23:
+        return f"{day} BETWEEN {d0} AND {d1}"
+    if s.date() == e.date():
+        return f"({day}={d0} AND {hour} BETWEEN {s.hour} AND {e.hour})"
+    return (f"(({day}={d0} AND {hour}>={s.hour}) OR ({day}>{d0} AND {day}<{d1})"
+            f" OR ({day}={d1} AND {hour}<={e.hour}))")
+
+
+def key_scope(start: date, end: date, alias: str = "") -> str:
+    """Phạm vi trên fact Gold theo date_key/hour_key (giờ NY)."""
+    prefix = f"{alias}." if alias else ""
+    return hour_range_sql(start, end, f"{prefix}date_key", f"{prefix}hour_key", lambda d: d.strftime("%Y%m%d"))
+
+
 def finite_sql(column: str) -> str:
     return f"({column} IS NOT NULL AND NOT isnan({column}) AND abs({column}) < CAST('Infinity' AS DOUBLE))"
 
@@ -41,7 +81,9 @@ def kept_sql(alias: str = "t") -> str:
 
 
 def date_scope(start: date, end: date, column: str = "t.date") -> str:
-    return f"{column} BETWEEN DATE '{start}' AND DATE '{end}'"
+    """Phạm vi trên Silver traffic; cột giờ nằm cạnh cột ngày (t.date -> t.hour)."""
+    hour = column[:-len("date")] + "hour"
+    return hour_range_sql(start, end, column, hour, lambda d: f"DATE '{d}'")
 
 
 def weather_bands_sql(source: str) -> str:
@@ -105,8 +147,10 @@ def road_metrics_sql(traffic: str, links: str, weather: str, start: date, end: d
 
 
 def congestion_sql(traffic: str, roads: str, weather: str, start: date, end: date) -> str:
-    """A common eligible reading set for all three sums, weather joined once."""
-    lower, upper = int(start.strftime("%Y%m%d")), int(end.strftime("%Y%m%d"))
+    """A common eligible reading set for all three sums, weather joined once.
+
+    Every reading of one UTC hour shares one New York (date_key, hour_key), so an
+    hour scope on readings selects whole congestion rows."""
     return f"""
       WITH totals AS (
         SELECT t.road_link_key,date_trunc('hour',t.reading_ts_utc) AS hour_start_utc,
@@ -115,7 +159,7 @@ def congestion_sql(traffic: str, roads: str, weather: str, start: date, end: dat
           sum(t.travel_time_sec) AS sum_travel_time_sec,
           sum(r.length_m/(r.free_flow_speed_mph*0.44704)) AS sum_free_flow_time_sec
         FROM {traffic} t JOIN {roads} r ON t.road_link_key=r.road_link_key
-        WHERE t.date_key BETWEEN {lower} AND {upper}
+        WHERE {key_scope(start, end, 't')}
           AND (t.status IS NULL OR t.status <> '-101')
           AND t.speed_mph>=0 AND t.travel_time_sec>0 AND r.length_m>0 AND r.free_flow_speed_mph>0
           AND {finite_sql('t.speed_mph')} AND {finite_sql('t.travel_time_sec')}
@@ -266,11 +310,10 @@ class GoldLoader:
             effective = self.effective_date or date(2025, 1, 1)
             self.require_empty(f"SELECT 1 FROM gold_road_changes WHERE old_from>=DATE '{effective}'",
                                "SCD2 effective date must be later than the current version start")
-            lower, upper = self.start.strftime('%Y%m%d'), self.end.strftime('%Y%m%d')
             for fact in ('fact_traffic_reading', 'fact_congestion_hourly'):
                 self.require_empty(f"""SELECT 1 FROM {self.gold}.{fact} f JOIN gold_road_changes c
                   ON f.road_link_key=c.old_key WHERE f.date_key>={effective.strftime('%Y%m%d')}
-                    AND NOT(f.date_key BETWEEN {lower} AND {upper})""",
+                    AND NOT({key_scope(self.start, self.end, 'f')})""",
                                    "SCD2 change affects existing facts outside the requested reload dates; expand --start-date/--end-date")
             stage = self.sql(f"""SELECT c.*,
               CAST((SELECT coalesce(max(road_link_key),0) FROM {self.gold}.dim_road_link)
@@ -298,13 +341,13 @@ class GoldLoader:
         return traffic_reading_sql(f"{self.silver}.traffic_cleaned", f"{self.gold}.dim_road_link", start, end)
 
     def load_traffic(self):
-        for start, end in month_ranges(self.start, self.end):
+        for start, end in scope_ranges(self.start, self.end):
             self.unique(f"{self.silver}.traffic_cleaned", ["link_id", "traffic_utc"],
                         f"{kept_sql('traffic_cleaned')} AND {date_scope(start,end,'date')}")
             source = self.traffic_source(start, end)
             self.require_empty(f"SELECT 1 FROM ({source}) WHERE road_link_key IS NULL",
                                "Traffic has no effective road dimension version")
-            scope = f"date_key BETWEEN {start.strftime('%Y%m%d')} AND {end.strftime('%Y%m%d')}"
+            scope = key_scope(start, end)
             self.replace_rows("fact_traffic_reading", source, ["road_link_key", "reading_ts_utc"], scope)
             print(f"GOLD_TRAFFIC: {start}..{end}", flush=True)
 
@@ -330,12 +373,12 @@ class GoldLoader:
             print(f"GOLD_WEATHER: {start}..{end}", flush=True)
 
     def load_congestion(self):
-        for start, end in month_ranges(self.start, self.end):
+        for start, end in scope_ranges(self.start, self.end):
             source = congestion_sql(f"{self.gold}.fact_traffic_reading", f"{self.gold}.dim_road_link",
                                     f"{self.gold}.fact_weather_hourly", start, end)
             self.require_empty(f"SELECT 1 FROM ({source}) WHERE condition_key IS NULL OR grid_key IS NULL",
                                "Eligible traffic hour has no weather/condition/grid")
-            scope = f"date_key BETWEEN {start.strftime('%Y%m%d')} AND {end.strftime('%Y%m%d')}"
+            scope = key_scope(start, end)
             self.replace_rows("fact_congestion_hourly", source, ["road_link_key", "hour_start_utc"], scope)
             print(f"GOLD_CONGESTION: {start}..{end}", flush=True)
 
@@ -377,9 +420,8 @@ class GoldLoader:
           {self.silver}.weather_cleaned s ON s.cell_id=g.grid_key AND s.weather_utc=g.hour_start_utc""",
                            "Gold weather key absent from Silver")
         self.require_empty(f"SELECT 1 FROM {self.gold}.fact_traffic_reading WHERE status='-101'", "Excluded status in Gold")
-        for start, end in month_ranges(self.start, self.end):
-            lower, upper = int(start.strftime("%Y%m%d")), int(end.strftime("%Y%m%d"))
-            scope = f"date_key BETWEEN {lower} AND {upper}"
+        for start, end in scope_ranges(self.start, self.end):
+            scope = key_scope(start, end)
             for table in ("fact_traffic_reading", "fact_congestion_hourly"):
                 timestamp = "reading_ts_utc" if table == "fact_traffic_reading" else "hour_start_utc"
                 self.unique(f"{self.gold}.{table}", ["road_link_key", timestamp], scope)
@@ -390,7 +432,7 @@ class GoldLoader:
                 raise ValueError(f"Traffic count mismatch {start}..{end}: {counts}")
             self.require_empty(f"""SELECT 1 FROM {self.gold}.fact_traffic_reading t
               JOIN {self.gold}.dim_road_link r ON t.road_link_key=r.road_link_key
-              WHERE t.{scope} AND (to_date(from_utc_timestamp(t.reading_ts_utc,'{TIMEZONE}'))<r.valid_from
+              WHERE {key_scope(start, end, 't')} AND (to_date(from_utc_timestamp(t.reading_ts_utc,'{TIMEZONE}'))<r.valid_from
                 OR (r.valid_to IS NOT NULL AND to_date(from_utc_timestamp(t.reading_ts_utc,'{TIMEZONE}'))>=r.valid_to))""",
                                "Traffic references wrong road SCD2 interval")
             expected = congestion_sql(f"{self.gold}.fact_traffic_reading", f"{self.gold}.dim_road_link",
@@ -418,8 +460,13 @@ class GoldLoader:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--start-date", type=date.fromisoformat, required=True)
-    parser.add_argument("--end-date", type=date.fromisoformat, required=True)
+    scope = parser.add_mutually_exclusive_group(required=True)
+    scope.add_argument("--start-date", type=date.fromisoformat, help="YYYY-MM-DD, ngày NY")
+    scope.add_argument("--start-hour", type=lambda s: datetime.strptime(s, HOUR_FMT),
+                       help="YYYY-MM-DDTHH, giờ NY, vd 2025-10-05T13")
+    parser.add_argument("--end-date", type=date.fromisoformat, help="bắt buộc khi dùng --start-date")
+    parser.add_argument("--end-hour", type=lambda s: datetime.strptime(s, HOUR_FMT),
+                        help="YYYY-MM-DDTHH, mặc định = start-hour (tính cả hai đầu)")
     parser.add_argument("--baseline-start-date", type=date.fromisoformat)
     parser.add_argument("--baseline-end-date", type=date.fromisoformat)
     parser.add_argument("--effective-date", type=date.fromisoformat)
@@ -429,13 +476,26 @@ def main():
     steps = args.steps.split(",")
     if any(s not in STEPS for s in steps):
         parser.error(f"steps must be a comma-separated subset of {STEPS}")
-    baseline_start = args.baseline_start_date or args.start_date
-    baseline_end = args.baseline_end_date or args.end_date
-    if args.end_date < args.start_date or baseline_end < baseline_start:
+    if args.start_hour:
+        if args.end_date:
+            parser.error("--end-date đi với --start-date; với --start-hour dùng --end-hour")
+        # Baseline mặc định = phạm vi chạy (vài giờ) sẽ làm hiệu chỉnh dim_road_link đổi theo từng lượt
+        if not (args.baseline_start_date and args.baseline_end_date):
+            parser.error("--start-hour cần --baseline-start-date/--baseline-end-date (trùng lần nạp Gold GĐ1)")
+        start, end = args.start_hour, args.end_hour or args.start_hour
+    else:
+        if args.end_hour:
+            parser.error("--end-hour đi với --start-hour; với --start-date dùng --end-date")
+        if args.end_date is None:
+            parser.error("--start-date cần --end-date")
+        start, end = args.start_date, args.end_date
+    baseline_start = args.baseline_start_date or start
+    baseline_end = args.baseline_end_date or end
+    if end < start or baseline_end < baseline_start:
         parser.error("end date must be >= start date")
     spark = build_spark("silver_to_gold")
     try:
-        loader = GoldLoader(spark, args.start_date, args.end_date, baseline_start, baseline_end, args.effective_date)
+        loader = GoldLoader(spark, start, end, baseline_start, baseline_end, args.effective_date)
         for step in STEPS:
             if step not in steps or (step == "validate" and args.skip_validation):
                 continue

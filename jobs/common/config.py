@@ -43,6 +43,10 @@ SILVER_INGEST_AUDIT = "lakehouse.silver.ingest_audit"
 # bổ sung 1 bảng traffic quarantine
 SILVER_TRAFFIC_QUARANTINE = "lakehouse.silver.traffic_quarantine"
 
+# Gold (silver_to_gold.py vẫn tự ghép tên bảng từ "lakehouse.gold")
+GOLD_NAMESPACE = "lakehouse.gold"
+GOLD_FACT_TRAFFIC_READING = "lakehouse.gold.fact_traffic_reading"
+
 # Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
 CHECKPOINT_TRAFFIC = "s3a://lakehouse/checkpoints/batch_layer/traffic_raw"
 CHECKPOINT_WEATHER = "s3a://lakehouse/checkpoints/batch_layer/weather_raw"
