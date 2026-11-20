@@ -104,6 +104,7 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "job_run_id": "string",        # mã của lần chạy job Silver (uuid)
     "source": "string",            # "traffic" / "weather"
     "event_date": "date",          # traffic: ngày theo giờ New York; weather: ngày theo UTC
+    "event_hour": "int",           # traffic: giờ theo New York; weather: giờ theo UTC
     "kafka_partition": "int",
     "min_offset": "bigint",
     "max_offset": "bigint",

@@ -1,36 +1,51 @@
 # Bronze -> Silver: weather_cleaned, link_info, traffic_cleaned và ingest_audit.
 # Ngày truyền vào là ngày theo giờ New York
-# Lệnh chạy: 
+# Lệnh chạy:
 #  spark-submit .../bronze_to_silver.py --start-date 2025-01-01 --end-date 2025-09-30
 #  spark-submit .../bronze_to_silver.py --start-date 2025-10-05 --steps weather,traffic
+# Chạy lại một vài giờ traffic: xem rerun_silver_hours.py
 import argparse
 import uuid
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame, functions as F
 from common.config import (BRONZE_TRAFFIC_TABLE, BRONZE_WEATHER_TABLE, SILVER_TRAFFIC_CLEANED, SILVER_WEATHER_CLEANED,
-                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE)
+                           SILVER_LINK_INFO, SILVER_INGEST_AUDIT, SILVER_TRAFFIC_QUARANTINE, TRAFFIC_TIMEZONE)
 from common.schemas import (SILVER_TRAFFIC_FIELDS, SILVER_WEATHER_FIELDS,
                             SILVER_LINK_INFO_FIELDS, SILVER_INGEST_AUDIT_FIELDS, SILVER_TRAFFIC_QUARANTINE_FIELDS, conform)
 from common.spark_session import build_spark
 from common.logger import get_logger
 from common.data_cleaning import (cast_traffic, enriched_traffic_time, drop_null_keys, drop_invalid_status,
-                                  drop_dst_duplicated_hours, deduplicate,dst_reason, parse_weather_time)
+                                  drop_dst_duplicated_hours, deduplicate, dst_reason, parse_weather_time)
 from batch.transformation.link_location import (clean_link_points, add_median_point,
                                                 assign_nearest_cell)
 STEPS = ["weather", "link_info", "traffic"]
 CACHE = StorageLevel.MEMORY_AND_DISK
+NY = ZoneInfo(TRAFFIC_TIMEZONE)
 
 log = get_logger("bronze_to_silver")
 
-def write_audit(source: str, event_date: Column, raw: DataFrame, before_dedup: DataFrame,
-                after_dedup: DataFrame, job_run_id: str) -> None:
 
-    keys = ["event_date", "kafka_partition"]
+def date_range_sql(start: date, end: date) -> str:
+    # Điều kiện chọn các ngày NY từ start đến end (tính cả hai đầu)
+    return f"(`date` BETWEEN DATE '{start.isoformat()}' AND DATE '{end.isoformat()}')"
+
+
+def ny_to_utc(local: datetime) -> datetime:
+    # Giờ NY (không múi giờ) -> giờ UTC (không múi giờ). Giờ DST lặp lấy lần đầu (fold=0)
+    return local.replace(tzinfo=NY).astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def write_audit(source: str, event_date: Column, event_hour: Column, raw: DataFrame, before_dedup: DataFrame,
+                after_dedup: DataFrame, job_run_id: str) -> None:
+    # 1 dòng audit = 1 lần chạy × nguồn × (event_date, event_hour) × kafka_partition
+    keys = ["event_date", "event_hour", "kafka_partition"]
 
     def by_key(df):
-        return df.withColumn("event_date", event_date).groupBy(*keys)
-
+        return (df.withColumn("event_date", event_date)
+                  .withColumn("event_hour", event_hour)
+                  .groupBy(*keys))
     stats = by_key(raw).agg(
         F.min("kafka_offset").alias("min_offset"),
         F.max("kafka_offset").alias("max_offset"),
@@ -48,17 +63,23 @@ def write_audit(source: str, event_date: Column, raw: DataFrame, before_dedup: D
              .withColumn("job_run_id", F.lit(job_run_id))
              .withColumn("source", F.lit(source))
              .withColumn("processed_ts", F.current_timestamp()))
-
     conform(audit, SILVER_INGEST_AUDIT_FIELDS).writeTo(SILVER_INGEST_AUDIT).append()
 
 
-def run_weather(spark, job_run_id: str) -> None:
+def run_weather(spark, start: date, end: date, job_run_id: str) -> None:
     raw = parse_weather_time(spark.table(BRONZE_WEATHER_TABLE)).persist(CACHE)
     cleaned = drop_null_keys(raw, ["cell_id", "weather_utc"])
     silver = deduplicate(cleaned, ["cell_id", "weather_utc"]).persist(CACHE)
     out = conform(silver.withColumn("processed_ts", F.current_timestamp()), SILVER_WEATHER_FIELDS)
     out.writeTo(SILVER_WEATHER_CLEANED).overwrite(F.lit(True))          # bảng nhỏ: ghi đè toàn bảng
-    write_audit("weather", F.to_date("weather_utc"), raw, cleaned, silver, job_run_id)
+
+    # Bảng ghi đè toàn bộ, nhưng audit chỉ ghi cho các giờ UTC ứng với khoảng ngày NY của lần chạy này.
+    # Nếu không, mỗi lần chạy (vd DAG mỗi giờ) sẽ ghi lại audit cho toàn bộ weather đã có.
+    lo = ny_to_utc(datetime.combine(start, time(0)))
+    hi = ny_to_utc(datetime.combine(end + timedelta(days=1), time(0)))
+    in_run = (F.col("weather_utc") >= F.lit(lo)) & (F.col("weather_utc") < F.lit(hi))
+    write_audit("weather", F.to_date("weather_utc"), F.hour("weather_utc"),
+                raw.filter(in_run), cleaned.filter(in_run), silver.filter(in_run), job_run_id)
 
     log.info("[weather] đã ghi %d dòng", silver.count())
     raw.unpersist()
@@ -109,8 +130,44 @@ def traffic_quarantine(raw: DataFrame, years: tuple[int, ...]) -> DataFrame:
     return deduplicate(quarantine, ["kafka_partition", "kafka_offset"])
 
 
-def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
+def traffic_in_scope(bronze: DataFrame, start: str, end: str) -> DataFrame:
+    """Giữ cả lỗi timestamp để quarantine thay vì bỏ qua do date=NULL.
+
+    Caller đã lọc event_month. Khi cả timestamp và date prefix đều hỏng, chỉ
+    biết tháng nguồn: quarantine có thể bao gồm lỗi không định ngày trong
+    các tháng chạm vào bởi một lần chạy phạm vi ngày nhỏ hơn tháng.
+    """
+    scoped = bronze.withColumn("_source_date", F.to_date(F.substring("data_as_of", 1, 10)))
+    raw = enriched_traffic_time(cast_traffic(scoped))
+    in_dates = F.col("date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
+    malformed_in_scope = F.col("date").isNull() & (
+        F.col("_source_date").isNull()
+        | F.col("_source_date").between(F.lit(start).cast("date"), F.lit(end).cast("date"))
+    )
+    return raw.filter(in_dates | malformed_in_scope)
+
+
+def traffic_quarantine(raw: DataFrame, years: tuple[int, ...]) -> DataFrame:
+    missing_key = F.when(F.col("link_id").isNull() | F.col("traffic_utc").isNull(), F.lit("missing_key"))
+    quarantine = (raw.withColumn("reason", F.coalesce(dst_reason(years), missing_key))
+                     .filter(F.col("reason").isNotNull())
+                     .withColumn("date", F.coalesce(F.col("date"), F.col("_source_date"))))
+    # Một lỗi nguồn chỉ ghi một lần dù Kafka record có mặt nhiều lần ở Bronze.
+    return deduplicate(quarantine, ["kafka_partition", "kafka_offset"])
+
+
+def run_traffic(spark, start: date, end: date, cond: str, job_run_id: str) -> None:
+    # start/end: ngày NY đầu/cuối của khoảng (lọc partition Bronze, tính giờ DST).
+    # cond: điều kiện SQL trên date/hour chọn đúng phần cần tính lại; dùng cho cả lọc lẫn DELETE
+    # -> phần bị xóa luôn đúng bằng phần được ghi lại. Theo ngày: date_range_sql; theo giờ: rerun_silver_hours.py.
     # data_as_of là giờ New York nên event_month cũng theo giờ New York: lọc đúng partition Bronze
+    bronze = (spark.table(BRONZE_TRAFFIC_TABLE)
+              .filter(F.col("event_month").between(start.strftime("%Y-%m"), end.strftime("%Y-%m"))))
+    raw = (enriched_traffic_time(cast_traffic(bronze))
+           .filter(F.expr(cond))
+           .persist(CACHE))
+    # Các năm của khoảng đang xử lý, vd (2025,) hoặc (2025, 2026) nếu vắt qua năm mới: để tính giờ DST
+    years = tuple(range(start.year, end.year + 1))
     bronze = spark.table(BRONZE_TRAFFIC_TABLE).filter(F.col("event_month").between(start[:7], end[:7]))
     raw = traffic_in_scope(bronze, start, end).persist(CACHE)
     # lấy năm: ví dụ years = "2025-10-05" thì sẽ lấy ra 2025
@@ -124,11 +181,11 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     )
     silver = cleaned.transform(deduplicate, ["link_id", "traffic_utc"]).persist(CACHE)
 
-    # Quarantine: dòng bị loại vì giờ DST (lặp/không tồn tại) hoặc thiếu link_id. 
+    # Quarantine: dòng bị loại vì giờ DST (lặp/không tồn tại) hoặc thiếu link_id.
     quarantine = traffic_quarantine(raw, years).persist(CACHE)
 
-    # Xóa đúng các ngày đang xử lý rồi ghi lại -> tránh việc chạy lại sẽ bị trùng
-    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_QUARANTINE} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
+    # Xóa đúng phần đang xử lý rồi ghi lại -> chạy lại bao nhiêu lần cũng không bị trùng
+    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_QUARANTINE} WHERE {cond}")
     # MERGE khóa Kafka làm rerun idempotent cả với lỗi không thể suy date.
     view = f"traffic_quarantine_{uuid.uuid4().hex}"
     conform(quarantine.withColumn("processed_ts", F.current_timestamp()),
@@ -145,13 +202,12 @@ def run_traffic(spark, start: str, end: str, job_run_id: str) -> None:
     for r in quarantine.groupBy("reason").count().collect():
         log.info("[traffic] quarantine %s: %d dòng", r["reason"], r["count"])
 
-    # Xóa đúng các ngày đang xử lý rồi ghi lại -> -> tránh việc chạy lại sẽ bị trùng
-    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_CLEANED} WHERE date BETWEEN DATE '{start}' AND DATE '{end}'")
+    spark.sql(f"DELETE FROM {SILVER_TRAFFIC_CLEANED} WHERE {cond}")
     out = conform(silver.withColumn("processed_ts", F.current_timestamp()), SILVER_TRAFFIC_FIELDS)
     out.writeTo(SILVER_TRAFFIC_CLEANED).append()
-    write_audit("traffic", F.col("date"), raw, cleaned, silver, job_run_id)
+    write_audit("traffic", F.col("date"), F.col("hour"), raw, cleaned, silver, job_run_id)
 
-    log.info("[traffic] %s -> %s: đã ghi %d dòng", start, end, silver.count())
+    log.info("[traffic] %s: đã ghi %d dòng", cond, silver.count())
     raw.unpersist()
     silver.unpersist()
     quarantine.unpersist()
@@ -163,8 +219,11 @@ def main():
     parser.add_argument("--steps", default=",".join(STEPS), help="weather,link_info,traffic")
     args = parser.parse_args()
 
-    start = date.fromisoformat(args.start_date).isoformat()
-    end = date.fromisoformat(args.end_date or args.start_date).isoformat()
+    try:
+        start = date.fromisoformat(args.start_date)
+        end = date.fromisoformat(args.end_date or args.start_date)
+    except ValueError as e:
+        parser.error(f"sai định dạng ngày: {e}")
     if end < start:
         parser.error("--end-date phải >= --start-date")
     steps = [s.strip() for s in args.steps.split(",")]
@@ -178,13 +237,14 @@ def main():
 
     # Thứ tự cố định: link_info cần weather_cleaned để lấy tâm ô
     if "weather" in steps:
-        run_weather(spark, job_run_id)
+        run_weather(spark, start, end, job_run_id)
     if "link_info" in steps:
         run_link_info(spark)
     if "traffic" in steps:
-        run_traffic(spark, start, end, job_run_id)
+        run_traffic(spark, start, end, date_range_sql(start, end), job_run_id)
 
     spark.stop()
 
 if __name__ == "__main__":
     main()
+
