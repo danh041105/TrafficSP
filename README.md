@@ -72,34 +72,7 @@ Lần đầu mất vài phút (Grafana khởi tạo, nạp dữ liệu). Nếu t
 
 ## 2. Tổng quan
 
-### Phân công của nhóm
-
-1. Trưởng nhóm: ingestion (producer → Kafka) và xây lakehouse (MinIO + Iceberg, bronze → silver → gold).
-2. Khải: streaming (speed layer) và MLOps (forecast layer).
-3. **Mai: mô hình vật lý (tạo bảng cụ thể) + giao diện**, làm thêm **monitoring**.
-
-Giao diện tham khảo *Land-Transport-Weather-Dashboard* (bản đồ ở giữa, số liệu hai bên, thời tiết đặt cạnh giao thông). Chỉ học bố cục, không chép code hay dữ liệu.
-
-### Vị trí trong kiến trúc Lambda
-
-```
-                 ┌──────────── Speed layer (Khải) ────────────┐
-Producer → Kafka ┤                                             ├→ Iceberg ─┐
-                 └──── Batch layer: bronze→silver→gold ────────┘           │
-                                                                           ▼
-                        ┌──────────────── PHẦN CỦA MAI ─────────────────────────┐
-                        │ Trino: view lakehouse.serving.* (hợp đồng dữ liệu)     │
-                        │        ▼                                              │
-                        │ Serving API (FastAPI) ──/metrics──┐                   │
-                        │        ▼                          ▼                   │
-                        │ Dashboard React          Prometheus → Grafana         │
-                        │                          ▲           ▲                │
-                        │              kafka-exporter       Spark metrics       │
-                        └───────────────────────────────────────────────────────┘
-```
-
-- **Serving layer** là tầng cuối của Lambda: người dùng không đọc Kafka hay Iceberg trực tiếp mà đọc qua tầng này.
-- **Monitoring** cắt ngang mọi tầng: dữ liệu vào (Kafka), xử lý (Spark) và dữ liệu ra (Serving).
+### Phân công của nhóm mô hình vật lý (tạo bảng cụ thể) + giao diện**, làm thêm **monitoring**.
 
 ### Quyết định quan trọng
 
