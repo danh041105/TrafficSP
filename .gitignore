@@ -1,0 +1,10 @@
+.env
+docker-data/
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+serving/web/dist/
+.DS_Store
+*.log

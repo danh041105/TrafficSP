@@ -1,0 +1,7 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+trino==0.331.0
+clickhouse-connect==0.8.11
+pandas==2.2.3
+pyarrow==18.1.0
+prometheus-client==0.21.1
