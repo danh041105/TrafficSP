@@ -11,5 +11,8 @@ CLAUDE.md
 # Kết quả chạy/đối chiếu/benchmark và log Airflow sinh ra lúc chạy
 logs/
 airflow/logs/
+plugins/
 *.md
 *.log
+# Dữ liệu và artifact train ML (model.json ~139 MB, quá giới hạn GitHub)
+data/ml/

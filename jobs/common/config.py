@@ -45,6 +45,10 @@ SILVER_INGEST_AUDIT = f"{SILVER_NAMESPACE}.ingest_audit"
 # bổ sung 1 bảng traffic quarantine
 SILVER_TRAFFIC_QUARANTINE = f"{SILVER_NAMESPACE}.traffic_quarantine"
 
+# Gold (silver_to_gold.py vẫn tự ghép tên bảng từ "lakehouse.gold")
+GOLD_NAMESPACE = "lakehouse.gold"
+GOLD_FACT_TRAFFIC_READING = "lakehouse.gold.fact_traffic_reading"
+
 # Lưu checkpoint để có 2 thông tin: đã đọc tới offset nào ở từng partition của topic, và đợt nào đã ghi xong vào bảng Iceberg
 # Gốc mặc định trên MinIO (s3a); biến môi trường CHECKPOINT_ROOT đổi được gốc (vd chạy thử/benchmark) mà không sửa code.
 # Mỗi streaming query một thư mục riêng: batch_layer/* cho job nạp Bronze, speed_v2_* cho Speed Layer (bên dưới).
