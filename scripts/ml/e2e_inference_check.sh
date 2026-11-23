@@ -12,7 +12,8 @@ ORIGIN="${ORIGIN:-2025-12-10T17:30}"
 VER=$(python -c "import json;print(json.load(open('$MODEL/metadata.json'))['model_version'])")
 C=/opt/lakehouse/ml_models/$VER
 docker exec traffic-spark-master mkdir -p "$C"
-for f in model.json metadata.json; do docker cp "$MODEL/$f" "traffic-spark-master:$C/$f" >/dev/null; done
+MF=model.json; [ -f "$MODEL/$MF" ] || MF=model.json.gz      # bản clone từ repo chỉ có model.json.gz
+for f in $MF metadata.json; do docker cp "$MODEL/$f" "traffic-spark-master:$C/$f" >/dev/null; done
 RUN="bash scripts/ml/run_spark.sh jobs/ml/predict.py --model-dir $C"
 
 echo "== 1. tái lập backtest tại $ORIGIN (nguồn: ml.traffic_5min_hist)"

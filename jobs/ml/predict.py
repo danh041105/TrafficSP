@@ -26,7 +26,7 @@ from common.spark_session import build_spark
 from common.trino_http import TRINO_URL, query
 from ml.feature_engineering import build_features
 from ml.feature_sets import add_fold_features, add_static_codes
-from ml.lgbm_numpy import NumpyBooster
+from ml.lgbm_numpy import NumpyBooster, model_file
 from ml.metrics import traffic_state
 from ml.mlconfig import load_config
 
@@ -100,7 +100,7 @@ def run(spark, cfg, model_dir: str, origin: dt.datetime | None, source: str, wri
         origins: list[dt.datetime] | None = None, forecast_table: str | None = None, booster=None) -> pd.DataFrame:
     """Dự báo cho một gốc (origin) hoặc nhiều gốc (origins). Gốc t dùng cửa sổ hoàn tất cuối L = t - 5' - A."""
     meta = json.loads((Path(model_dir) / "metadata.json").read_text())
-    booster = booster or NumpyBooster.load(str(Path(model_dir) / "model.json"))
+    booster = booster or NumpyBooster.load(str(model_file(model_dir)))
     A, H = meta["availability_lag_minutes"], meta["horizon_minutes"]
     if origins:
         Ls = sorted({floor5(o) - dt.timedelta(minutes=5 + A) for o in origins})

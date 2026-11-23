@@ -7,9 +7,18 @@ mã nguồn LightGBM (Tree::NumericalDecision / CategoricalDecision):
   - phân loại: NaN hoặc âm -> phải; int(x) thuộc tập threshold ("a||b||c") -> trái.
 Dự báo = tổng giá trị lá của mọi cây (shrinkage và giá trị khởi tạo đã nằm trong lá). Test so với Booster.predict.
 """
+import gzip
 import json
+from pathlib import Path
 
 import numpy as np
+
+
+def model_file(model_dir) -> Path:
+    """File cây của model: model.json nếu có (máy train/phục vụ), không thì model.json.gz (bản nén đi kèm repo,
+    vì model.json vượt giới hạn 100 MB của GitHub). Hai file cùng nội dung sau khi giải nén."""
+    d = Path(model_dir)
+    return d / "model.json" if (d / "model.json").exists() else d / "model.json.gz"
 
 K_ZERO = 1e-35
 
@@ -72,7 +81,8 @@ class NumpyBooster:
 
     @classmethod
     def load(cls, path: str) -> "NumpyBooster":
-        with open(path, encoding="utf-8") as f:
+        opener = gzip.open if str(path).endswith(".gz") else open
+        with opener(path, "rt", encoding="utf-8") as f:
             return cls(json.load(f))
 
     def predict(self, X: np.ndarray) -> np.ndarray:

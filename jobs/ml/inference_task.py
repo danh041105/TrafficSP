@@ -27,6 +27,7 @@ from pathlib import Path
 
 from common.trino_http import query
 from ml import predict
+from ml.lgbm_numpy import model_file
 from ml.mlconfig import load_config
 
 SKIP = 99
@@ -53,7 +54,9 @@ def resolve_model(models_dir: Path) -> tuple[Path, dict, dict]:
     version = json.loads((models_dir / "current.json").read_text())["model_version"]
     d = models_dir / version
     manifest = json.loads((d / "manifest.json").read_text())
-    for name in ("model.json", "metadata.json"):
+    for name in (model_file(d).name, "metadata.json"):          # model.json hoặc model.json.gz (bản trong repo)
+        if name not in manifest["sha256"]:
+            raise RuntimeError(f"manifest.json không có sha256 cho {d / name}")
         got = sha256(d / name)
         if got != manifest["sha256"][name]:
             raise RuntimeError(f"{d / name}: sha256 {got[:12]}… khác manifest {manifest['sha256'][name][:12]}…")

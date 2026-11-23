@@ -8,7 +8,9 @@
     "baseline_asof.parquet": "2dc932ddd79010cb07a3a21cdd965400e9a3798b589c306009eecf6f44fcc804",
     "metadata.json": "14e255502bfc98d2f2f5bac4484cffe17652796437f3e596801368a68a6765de",
     "model.json": "a8b9beda7b44caddfa2e76e6aff609c3757887f16e53abcceab46b2eda1792a2",
-    "fixture.parquet": "a2e087452e2059ac1d4516a9db0a394ea021a0ef59bdc23b469379cb6b6ef0b1"
+    "fixture.parquet": "a2e087452e2059ac1d4516a9db0a394ea021a0ef59bdc23b469379cb6b6ef0b1",
+    "model.json.gz": "f1766e8b9db5caafd1f3c017191e905f4f32ed15f119804b3f98e4d347be90f6"
   },
-  "smoke_fixture": "fixture.parquet: 1 l\u00f4 feature + d\u1ef1 b\u00e1o LightGBM g\u1ed1c (_pred) \u0111\u1ec3 ki\u1ec3m tra b\u1ed9 ch\u1ea5m \u0111i\u1ec3m numpy khi tri\u1ec3n khai"
+  "smoke_fixture": "fixture.parquet: 1 l\u00f4 feature + d\u1ef1 b\u00e1o LightGBM g\u1ed1c (_pred) \u0111\u1ec3 ki\u1ec3m tra b\u1ed9 ch\u1ea5m \u0111i\u1ec3m numpy khi tri\u1ec3n khai",
+  "model_file_note": "model.json.gz = gzip(model.json), k\u00e8m repo v\u00ec model.json > 100 MB; loader d\u00f9ng model.json n\u1ebfu c\u00f3, kh\u00f4ng th\u00ec .gz"
 }
