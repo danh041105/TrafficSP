@@ -1,14 +1,15 @@
 """TrafficSP - Batch Layer + Lambda handoff (Airflow 3).
 
   kafka_to_bronze -> plan -> bronze_to_silver -> [batch_5min, batch_hourly] -> dq_checks -> lambda_handoff -> verify_serving
+                                               \-> gold_star (silver_to_gold.py của gold-dev: dim_* / fact_*; nhánh riêng, không chặn handoff)
 
 - Speed Layer KHÔNG nằm trong DAG: nó chạy liên tục (jobs/stream/run_speed_layer.sh), không bị khởi động lại theo lịch Batch.
 - Mọi task idempotent (Bronze dùng checkpoint offset; Silver xoá-rồi-ghi theo ngày; Gold overwrite theo khoảng ngày UTC;
   handoff có khoá + nhật ký trạng thái) -> retry an toàn.
 - lambda_handoff chỉ chạy khi dq_checks thành công (trigger_rule mặc định all_success) và tự kiểm tra lại trên đúng snapshot
-  sẽ công bố, nên T_batch không thể được công bố khi Batch chưa hoàn tất.
+  sẽ công bố, nên batch_state không thể được công bố khi Batch chưa hoàn tất.
 - max_active_runs=1: không có 2 lượt Batch ghi đè nhau; handoff còn có PostgreSQL advisory lock phòng chạy tay song song.
-- Khoảng xử lý do task plan quyết định từ DỮ LIỆU (T_batch, Bronze), không dùng ngày logic của Airflow.
+- Khoảng xử lý do task plan quyết định từ DỮ LIỆU (batch_state, Bronze), không dùng ngày logic của Airflow.
 """
 import datetime as dt
 import json
@@ -45,10 +46,11 @@ with DAG(
     start_date=dt.datetime(2026, 11, 1, tzinfo=dt.timezone.utc),
     catchup=False,
     max_active_runs=1,
+    max_active_tasks=1,                  # 1 worker 4 core/4g + Speed Layer: 3 job Spark song song làm máy 8 GB bị OOM (exit 137)
     default_args=default_args,
     user_defined_filters={"from_json": from_json},
     params={
-        "until": Param("auto", type="string", description="T_batch mới (UTC, ví dụ 2025-12-02T10:00:00) hoặc auto"),
+        "until": Param("auto", type="string", description="batch_state mới (UTC, ví dụ 2025-12-02T10:00:00) hoặc auto"),
         # null được phép -> ô trên UI không bắt buộc (chuỗi rỗng bị Airflow 3 coi là thiếu giá trị)
         "from_day": Param(None, type=["null", "string"], description="ép ngày UTC bắt đầu recompute (backfill), để trống = tự tính"),
         "cores": Param(2, type="integer"),
@@ -104,4 +106,23 @@ with DAG(
         append_env=True,
     )
 
+    # Mô hình sao của gold-dev: loader của Bách (ngày New York, gồm 2 đầu) + kỳ baseline cố định (free-flow, chiều dài).
+    # Nhánh song song: lỗi ở đây không chặn Lambda handoff. dim_road_link nạp ở đây cấp road_link_key / free-flow cho Lambda.
+    # Mô hình sao (loader silver_to_gold.py của Bách). Bước "dimensions" quét toàn Silver và tính lại hiệu chỉnh
+    # free-flow/chiều dài trên baseline CỐ ĐỊNH 2025-01..09; bước "validate" quét toàn bộ fact. Với baseline cố định và
+    # link_info không đổi trong GĐ2, chạy lại hai bước này mỗi giờ luôn cho cùng kết quả -> lượt thường chỉ chạy
+    # traffic,weather,congestion. Chạy đủ mọi bước: lượt đầu tiên, lượt đầu mỗi ngày (giờ 00 UTC), hoặc khi lượt nhẹ lỗi
+    # (vd tổ hợp thời tiết mới chưa có trong dim_weather_condition) -> không bỏ sót chiều mới.
+    gold_star = BashOperator(
+        task_id="gold_star",
+        bash_command=("G='" + SUBMIT.replace('{{ params.executor_memory }}', '2g') + "/batch/transformation/silver_to_gold.py "
+                      "--start-date {{ (" + PLAN + ").silver_start }} --end-date {{ (" + PLAN + ").silver_end }} "
+                      "--baseline-start-date 2025-01-01 --baseline-end-date 2025-09-30'; "
+                      "if [ \"{{ (" + PLAN + ").first_run }}\" = \"True\" ] || [ \"$(date -u +%H)\" = \"00\" ]; then "
+                      "echo '[gold_star] chạy đủ các bước'; $G; "
+                      "else echo '[gold_star] chạy nhẹ traffic,weather,congestion'; "
+                      "$G --steps traffic,weather,congestion || { echo '[gold_star] lượt nhẹ lỗi -> chạy đủ các bước'; $G; }; fi"),
+    )
+
     kafka_to_bronze >> plan >> bronze_to_silver >> [batch_5min, batch_hourly] >> dq_checks >> lambda_handoff >> verify_serving
+    bronze_to_silver >> gold_star

@@ -1,7 +1,7 @@
-"""Lambda handoff hoàn toàn trên Iceberg: chuyển các cửa sổ 5 phút đã hoàn tất từ Speed sang Batch theo mốc T_batch.
+"""Lambda handoff hoàn toàn trên Iceberg: chuyển các cửa sổ 5 phút đã hoàn tất từ Speed sang Batch theo mốc batch_state.
 
-  Unified (Trino):  batch  khi window_start_utc <  T_batch  (gold.traffic_5min_batch  FOR VERSION AS OF 'published')
-                    speed  khi window_start_utc >= T_batch  (speed.traffic_5min_rt)
+  Unified (Trino):  batch  khi window_start_utc <  batch_state  (gold.fact_traffic_5min  FOR VERSION AS OF 'published')
+                    speed  khi window_start_utc >= batch_state  (speed.traffic_5min_rt)
 Iceberg KHÔNG có giao dịch nhiều bảng, nên publish là chuỗi bước mà mọi trạng thái trung gian đều nhất quán khi đọc:
   0. Khoá: pg_try_advisory_lock trên Postgres của catalog (handoff thứ hai thoát ngay). Phục hồi handoff dang dở.
   1. PREPARING  : ghi 1 dòng vào gold.lambda_control (append).
@@ -11,10 +11,10 @@ Iceberg KHÔNG có giao dịch nhiều bảng, nên publish là chuỗi bước 
                   đủ so với Silver, không trùng grain, phủ mọi cửa sổ realtime, 1 giờ = tổng 5 phút. Lỗi -> FAILED, thoát 1.
   4. VALIDATED  : ghi dòng kèm S5/SH + kết quả kiểm tra.
   5. Dời tag    : ALTER TABLE ... REPLACE TAG published AS OF VERSION S5 (và SH). Lúc này Trino thấy dữ liệu batch mới cho
-                  window < T_old (đã kiểm chứng) - T_batch vẫn cũ nên không chồng lấn, không hở.
-  6. PUBLISHED  : ghi dòng t_batch = T_new. Từ đây unified lấy batch cho [T_old, T_new).
+                  window < T_old (đã kiểm chứng) - batch_state vẫn cũ nên không chồng lấn, không hở.
+  6. PUBLISHED  : ghi dòng batch_state = T_new. Từ đây unified lấy batch cho [T_old, T_new).
 Crash ở bất kỳ bước nào: lần chạy sau (bước 0) đánh dấu FAILED, hoặc hoàn tất PUBLISHED nếu tag đã trỏ đúng snapshot đã
-kiểm chứng. T_batch không bao giờ giảm. Dữ liệu muộn sau khi đã chốt: chạy lại với --correction --from-day <ngày>.
+kiểm chứng. batch_state không bao giờ giảm. Dữ liệu muộn sau khi đã chốt: chạy lại với --correction --from-day <ngày>.
 
 Chạy:
   spark-submit .../lambda_handoff.py --until auto
@@ -50,7 +50,7 @@ def append_control(spark, **kw):
     schema = ", ".join(f"`{k}` {v}" for k, v in GOLD_LAMBDA_CONTROL_FIELDS.items())
     spark.createDataFrame([tuple(row[k] for k in GOLD_LAMBDA_CONTROL_FIELDS)], schema) \
          .writeTo(config.GOLD_LAMBDA_CONTROL).append()
-    log.info("[control] %s %s t_batch=%s", row["handoff_id"], row["status"], row["t_batch"])
+    log.info("[control] %s %s batch_state=%s", row["handoff_id"], row["status"], row["batch_state"])
 
 
 def tag_snapshot(spark, table: str) -> int | None:
@@ -66,7 +66,7 @@ def recover(spark, t_published: dt.datetime):
         append_control(spark, **{**p, "status": action,
                                  "message": f"recovered from {p['status']} after crash -> {action}"})
         if action == lc.PUBLISHED:
-            t_published = max(t_published, lc.naive_utc(p["t_batch"]))
+            t_published = max(t_published, lc.naive_utc(p["batch_state"]))
     return t_published
 
 
@@ -75,7 +75,7 @@ def run_checks(spark, s5: int, sh: int, lo: dt.datetime, hi: dt.datetime, allow_
     b5 = spark.sql(f"SELECT * FROM {config.GOLD_TRAFFIC_5MIN} VERSION AS OF {s5}") \
               .filter((F.col("window_start_utc") >= F.lit(lo)) & (F.col("window_start_utc") < F.lit(hi)))
     bh = spark.sql(f"SELECT * FROM {config.GOLD_TRAFFIC_HOURLY} VERSION AS OF {sh}") \
-              .filter((F.col("hour_utc") >= F.lit(lo)) & (F.col("hour_utc") < F.lit(hi)))
+              .filter((F.col("hour_start_utc") >= F.lit(lo)) & (F.col("hour_start_utc") < F.lit(hi)))
     silver_n = spark.table(config.SILVER_TRAFFIC_CLEANED) \
                     .filter((F.col("traffic_utc") >= F.lit(lo)) & (F.col("traffic_utc") < F.lit(hi))).count()
     agg = b5.agg(F.count("*").alias("rows"), F.countDistinct("link_id", "window_start_utc").alias("keys"),
@@ -83,7 +83,7 @@ def run_checks(spark, s5: int, sh: int, lo: dt.datetime, hi: dt.datetime, allow_
     # 1 giờ = tổng 5 phút, chỉ so các giờ nằm trọn trong [lo, T_new)
     hi_hour = hi.replace(minute=0)
     h5 = b5.filter(F.col("window_start_utc") < F.lit(hi_hour)).agg(F.coalesce(F.sum("n_records"), F.lit(0))).collect()[0][0]
-    hh = bh.filter(F.col("hour_utc") < F.lit(hi_hour)).agg(F.coalesce(F.sum("n_records"), F.lit(0))).collect()[0][0]
+    hh = bh.filter(F.col("hour_start_utc") < F.lit(hi_hour)).agg(F.coalesce(F.sum("n_records"), F.lit(0))).collect()[0][0]
     rt = spark.table(config.SPEED_TRAFFIC_5MIN) \
               .filter((F.col("window_start_utc") >= F.lit(lo)) & (F.col("window_start_utc") < F.lit(hi)))
     rt_only = rt.select("link_id", "window_start_utc").join(b5.select("link_id", "window_start_utc"),
@@ -103,12 +103,12 @@ def run_checks(spark, s5: int, sh: int, lo: dt.datetime, hi: dt.datetime, allow_
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--until", default="auto", help="T_batch mới (UTC, làm tròn xuống 5 phút) hoặc 'auto'")
+    ap.add_argument("--until", default="auto", help="batch_state mới (UTC, làm tròn xuống 5 phút) hoặc 'auto'")
     ap.add_argument("--lateness-minutes", type=int, default=int(config.SPEED_WATERMARK.split()[0]),
                     help="khoảng an toàn tính từ event_time lớn nhất của Silver (mặc định = watermark Speed Layer)")
     ap.add_argument("--from-day", help="ép ngày UTC bắt đầu recompute/kiểm tra (backfill, sửa dữ liệu muộn)")
     ap.add_argument("--no-recompute", action="store_true", help="không ghi Batch View; kiểm tra + công bố snapshot hiện tại")
-    ap.add_argument("--correction", action="store_true", help="cho phép công bố lại với T_batch giữ nguyên")
+    ap.add_argument("--correction", action="store_true", help="cho phép công bố lại với batch_state giữ nguyên")
     ap.add_argument("--allow-rt-without-batch", action="store_true")
     ap.add_argument("--fail-at", choices=["after_prepare", "after_commit", "after_validate", "after_tag"],
                     help="giả lập crash để kiểm thử")
@@ -125,7 +125,7 @@ def main():
 
 
 def run(spark, args) -> int:
-    t_old = recover(spark, lc.current_t_batch(control_rows(spark)))
+    t_old = recover(spark, lc.current_batch_state(control_rows(spark)))
     silver = spark.table(config.SILVER_TRAFFIC_CLEANED)
     t_new, safe = lc.choose_t_new(args.until, silver.agg(F.max("traffic_utc")).collect()[0][0], args.lateness_minutes)
     reason = lc.validate_move(t_old, t_new, safe, args.correction)
@@ -142,7 +142,7 @@ def run(spark, args) -> int:
         start_day = t_old.date()
     end_day = (t_new - dt.timedelta(seconds=1)).date()
     hid = f"handoff-{uuid.uuid4().hex[:12]}"
-    base = {"handoff_id": hid, "t_batch_prev": t_old, "t_batch": t_new}
+    base = {"handoff_id": hid, "batch_state_prev": t_old, "batch_state": t_new}
     append_control(spark, **base, status=lc.PREPARING, message=f"recompute {start_day}..{end_day}")
     if args.fail_at == "after_prepare":
         raise SystemExit("[handoff] giả lập crash sau PREPARING")
@@ -176,13 +176,13 @@ def run(spark, args) -> int:
     if args.fail_at == "after_tag":
         raise SystemExit("[handoff] giả lập crash sau dời tag, trước PUBLISHED")
 
-    # 6. Publish. Kiểm tra lại T_batch ngay trước khi ghi (đang giữ khoá nên không ai chen vào)
-    t_now = lc.current_t_batch(control_rows(spark))
+    # 6. Publish. Kiểm tra lại batch_state ngay trước khi ghi (đang giữ khoá nên không ai chen vào)
+    t_now = lc.current_batch_state(control_rows(spark))
     if t_new < t_now or (t_new == t_now and not args.correction):
-        append_control(spark, **common, status=lc.FAILED, message=f"T_batch đã là {t_now} -> không công bố {t_new}")
+        append_control(spark, **common, status=lc.FAILED, message=f"batch_state đã là {t_now} -> không công bố {t_new}")
         return 1
     append_control(spark, **common, status=lc.PUBLISHED)
-    log.info("[handoff] PUBLISHED T_batch = %s (5min snapshot %s, hourly snapshot %s)", t_new, s5, sh)
+    log.info("[handoff] PUBLISHED batch_state = %s (5min snapshot %s, hourly snapshot %s)", t_new, s5, sh)
     return 0
 
 

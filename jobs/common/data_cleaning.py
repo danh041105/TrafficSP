@@ -29,9 +29,11 @@ def deduplicate(df: DataFrame, key: list[str]) -> DataFrame:
     )
     return new_df
 
-# User chốt chỉ loại status = -101; chưa gán nghĩa cho các mã khác.
+# User chốt chỉ loại status = -101; chưa gán nghĩa cho các mã khác. Giữ status NULL.
+# Luật dùng chung với Speed Layer (common/quality_rules.sensor_ok_col) -> Batch và Speed lọc trên cùng một tập.
 def drop_invalid_status(df: DataFrame) -> DataFrame:
-    new_df = df.filter(F.col("status").isNull() | (F.col("status") != -101))
+    from common.quality_rules import sensor_ok_col
+    new_df = df.filter(sensor_ok_col("status"))
     return new_df
 
 # Bỏ dòng thiếu cột khóa như link_id, traffic_utc

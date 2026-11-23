@@ -28,7 +28,9 @@ rm -f "$STOP_FILE"          # an toàn: đang giữ khoá nên không supervisor
 n=0
 while :; do
   echo "[supervisor] $(date -u +%FT%TZ) start #$n pid=$$: $*" >> "$LOG_DIR/speed_supervisor.log"
+  # spark.ui.port cố định (SPEED_UI_PORT, mặc định 4041): Prometheus lấy metric driver ở spark-master:4041
   /opt/spark/bin/spark-submit --conf spark.cores.max="$CORES" --conf spark.executor.memory="$EXEC_MEM" \
+    --conf spark.ui.port="${SPEED_UI_PORT:-4041}" \
     /opt/spark/jobs/stream/speed_layer.py --ops-log-dir "$LOG_DIR" "$@" >> "$LOG_DIR/speed_layer.log" 2>&1
   rc=$?
   echo "[supervisor] $(date -u +%FT%TZ) exit rc=$rc pid=$$" >> "$LOG_DIR/speed_supervisor.log"

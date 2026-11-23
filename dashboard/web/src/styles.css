@@ -1,0 +1,311 @@
+/* TrafficSP — token hệ thống (xem docs/dashboard_design.md). Nền giấy khảo sát, mực đường nhựa, đường kẻ mảnh;
+   màu trạng thái giao thông là màu status cố định, luôn đi kèm nhãn chữ. */
+:root {
+  --ink: #1d2329;
+  --ink-2: #4b5560;
+  --ink-3: #7a838c;
+  --page: #f4f5f2;
+  --panel: #ffffff;
+  --rule: #d9dcd6;
+  --rule-strong: #b9bdb5;
+  --signal: #1f5fbf;
+  --signal-wash: #e7eef9;
+  --free: #0ca30c;
+  --slow: #fab219;
+  --congested: #d03b3b;
+  --nodata: #9aa0a6;
+  --warn-ink: #7a5200;
+  --bad-ink: #a12626;
+  --good-ink: #006300;
+  --radius-ctl: 4px;
+  --rail: 208px;
+  --grid-fine: rgba(29, 35, 41, 0.035);
+  --grid-major: rgba(29, 35, 41, 0.07);
+  --road-ink: rgba(29, 35, 41, 0.14);
+  --road-label: rgba(29, 35, 41, 0.08);
+  --font: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button, select, input { font: inherit; color: inherit; }
+a { color: var(--signal); }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* ---------- khung */
+.shell { display: grid; grid-template-columns: var(--rail) 1fr; min-height: 100%; }
+.rail {
+  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
+  border-right: 1px solid var(--rule); background: var(--panel); padding: 20px 0 16px;
+}
+.brand { padding: 0 20px 18px; border-bottom: 1px solid var(--rule); }
+.brand-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.brand-sub { color: var(--ink-2); font-size: 13px; }
+.nav { display: flex; flex-direction: column; padding: 12px 10px; gap: 2px; }
+.nav a {
+  display: block; padding: 8px 10px; border-radius: var(--radius-ctl); color: var(--ink-2);
+  text-decoration: none; font-weight: 500;
+}
+.nav a:hover { background: var(--page); color: var(--ink); }
+.nav a[aria-current="page"] { background: var(--signal-wash); color: var(--signal); font-weight: 600; }
+.rail-foot { margin-top: auto; padding: 12px 20px 0; border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-3); }
+.lane-switch { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.lane-switch label { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.lane-switch input:disabled + span { color: var(--ink-3); }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+/* ---------- dải đồng hồ (điểm nhấn duy nhất) */
+.clock {
+  display: grid; grid-template-columns: minmax(250px, 1.35fr) repeat(3, minmax(140px, 1fr)) minmax(200px, 0.9fr);
+  border-bottom: 1px solid var(--rule); background: var(--panel); position: sticky; top: 0; z-index: 5;
+}
+.clock > div { padding: 12px 18px; border-right: 1px solid var(--rule); min-width: 0; }
+.clock > div:last-child { border-right: 0; }
+.clock .k { font-size: 12px; color: var(--ink-3); }
+.clock .v { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clock .event .v { font-size: 22px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.15; }
+.clock .sub { font-size: 12px; color: var(--ink-2); }
+.replay-flag { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 10px 18px; }
+.replay-flag .tag {
+  border: 1.5px solid var(--ink); border-radius: 3px; padding: 3px 8px; font-weight: 700; font-size: 12px;
+  background: repeating-linear-gradient(135deg, #fff 0 6px, #f1f2ee 6px 12px);
+}
+.replay-flag .detail { font-size: 12px; color: var(--ink-2); }
+
+/* ---------- trang */
+.page { padding: 22px 26px 40px; display: flex; flex-direction: column; gap: 22px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-head h1 { margin: 0; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; }
+.page-head p { margin: 4px 0 0; color: var(--ink-2); max-width: 72ch; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.controls select, .controls button {
+  border: 1px solid var(--rule-strong); background: var(--panel); border-radius: var(--radius-ctl);
+  padding: 6px 10px; min-height: 34px;
+}
+.controls button { cursor: pointer; }
+.controls button[aria-pressed="true"] { border-color: var(--signal); background: var(--signal-wash); color: var(--signal); }
+
+.section { background: var(--panel); border: 1px solid var(--rule); }
+.section > header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.section > header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.section > header .note { color: var(--ink-3); font-size: 12px; }
+.section .body { padding: 14px 16px; }
+.section .body.flush { padding: 0; overflow-x: auto; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 22px; }
+.grid-2e { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+
+/* dải số liệu: không dùng thẻ, các ô ngăn bằng đường kẻ */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: var(--panel); border: 1px solid var(--rule); }
+.stat { padding: 14px 16px; border-right: 1px solid var(--rule); }
+.stat:last-child { border-right: 0; }
+.stat .k { color: var(--ink-2); font-size: 13px; }
+.stat .v { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.stat .v small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
+.stat .d { font-size: 12px; color: var(--ink-3); }
+
+/* thanh phân bố trạng thái */
+.dist { display: flex; height: 26px; gap: 2px; }
+.dist > span { display: block; min-width: 2px; }
+.dist-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 13px; }
+.dist-legend b { font-weight: 600; }
+
+/* nhãn trạng thái: chấm màu + chữ, không dựa vào màu đơn thuần */
+.state { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.state i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+.state i.hatch { background: repeating-linear-gradient(135deg, var(--nodata) 0 2px, #fff 2px 4px) !important; }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th { text-align: left; font-weight: 600; color: var(--ink-2); padding: 8px 10px; border-bottom: 1px solid var(--rule-strong); white-space: nowrap; position: sticky; top: 0; background: var(--panel); }
+table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.data td.num, table.data th.num { text-align: right; }
+table.data tr.clickable { cursor: pointer; }
+table.data tr.clickable:hover td { background: #f7f8f6; }
+table.data tr.selected td { background: var(--signal-wash); }
+.scroll { max-height: 520px; overflow: auto; }
+
+.empty, .error, .loading { padding: 22px 16px; color: var(--ink-2); }
+.error { color: var(--bad-ink); }
+.error b, .empty b { color: var(--ink); }
+.muted { color: var(--ink-3); }
+.mono-id { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.ok { color: var(--good-ink); font-weight: 600; }
+.bad { color: var(--bad-ink); font-weight: 600; }
+.warn { color: var(--warn-ink); font-weight: 600; }
+
+/* bản đồ */
+.map-wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 640px; border: 1px solid var(--rule); background: var(--panel); }
+.map { min-height: 640px; }
+.map-side { border-left: 1px solid var(--rule); display: flex; flex-direction: column; min-width: 0; }
+.map-side .body { overflow: auto; }
+.map-legend { position: absolute; left: 12px; bottom: 28px; background: rgba(255,255,255,0.96); border: 1px solid var(--rule); padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; z-index: 2; }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 10px; font-size: 13px; }
+.kv dt { color: var(--ink-2); }
+.kv dd { margin: 0; }
+
+/* luồng pipeline */
+.flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid var(--rule); background: var(--panel); }
+.flow > div { padding: 12px 14px; border-right: 1px solid var(--rule); position: relative; min-width: 0; }
+.flow > div:last-child { border-right: 0; }
+.flow > div:not(:last-child)::after {
+  content: ""; position: absolute; right: -6px; top: 50%; width: 10px; height: 10px; background: var(--panel);
+  border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); transform: translateY(-50%) rotate(45deg); z-index: 1;
+}
+.flow .name { font-weight: 600; }
+.flow .val { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+
+@media (max-width: 1180px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .clock { grid-template-columns: 1fr 1fr; }
+  .clock > div { border-bottom: 1px solid var(--rule); }
+  .map-wrap { grid-template-columns: 1fr; }
+  .map-side { border-left: 0; border-top: 1px solid var(--rule); }
+  .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; }
+  .brand { border: 0; padding: 0 12px 0 0; }
+  .nav { flex-direction: row; flex-wrap: wrap; padding: 0; }
+  .rail-foot { display: none; }
+  .clock { grid-template-columns: 1fr; position: static; }
+  .page { padding: 16px; }
+  .grid-2e { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- số lớn đứng một mình: chữ số tỷ lệ (dataviz: tabular-nums chỉ cho cột số thẳng hàng) */
+.stat .v, .clock .v, .ops-kpis .v { font-variant-numeric: proportional-nums; }
+
+/* ---------- trung tâm vận hành: khối ngăn bằng đường kẻ trên, không đóng khung từng thẻ */
+.ops-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); background: var(--panel); }
+.ops-kpis > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-right: 1px solid var(--rule); min-width: 0; }
+.ops-kpis > div:last-child { border-right: 0; }
+.ops-kpis .k { font-size: 12px; color: var(--ink-2); }
+.ops-kpis .v { font-size: 18px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ops-kpis .v small { font-size: 12px; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
+.ops-kpis .d { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ops-block { border-top: 1px solid var(--rule-strong); padding-top: 12px; }
+.ops-block > header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.ops-block > header h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+.ops-block > header .note { color: var(--ink-3); font-size: 12px; }
+.sub-h { font-size: 14px; font-weight: 600; margin: 16px 0 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.caption { color: var(--ink-3); font-size: 12px; margin: 4px 0 0; max-width: 110ch; }
+.ops-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+.ops-legend i, .mini-legend i, .chip i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.mini-legend { display: flex; gap: 12px; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+.flow-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); padding: 4px; }
+.flow-svg { width: 100%; min-width: 1100px; height: auto; display: block; }
+.flow-box { fill: var(--panel); stroke: var(--rule-strong); }
+.flow-node { cursor: pointer; outline: none; }
+.flow-node:hover .flow-box, .flow-node:focus-visible .flow-box { stroke: var(--signal); }
+.flow-node.selected .flow-box { stroke: var(--signal); stroke-width: 2; fill: var(--signal-wash); }
+.flow-name { font: 600 12.5px var(--font); fill: var(--ink); }
+.flow-metric { font: 500 13px var(--font); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.flow-time, .flow-lane-label { font: 400 11px var(--font); fill: var(--ink-3); }
+.flow-status { font-weight: 600; }
+.node-detail { margin-top: 10px; background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--signal); padding: 10px 14px; }
+.node-detail-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.node-detail-head button { margin-left: auto; border: 1px solid var(--rule-strong); background: var(--panel); border-radius: var(--radius-ctl); padding: 4px 10px; cursor: pointer; }
+
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 22px; }
+.metric-tile { min-width: 0; border-top: 1px solid var(--rule); padding-top: 8px; }
+.metric-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.metric-head h3 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.metric-head span { font-size: 11px; color: var(--ink-3); text-align: right; max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty.small { padding: 40px 8px; font-size: 12px; text-align: center; background: repeating-linear-gradient(0deg, transparent 0 23px, var(--rule) 23px 24px); color: var(--ink-3); }
+.not-available { margin: 12px 0 0; padding-left: 18px; color: var(--ink-3); font-size: 12px; }
+
+.chip { display: inline-flex; align-items: center; gap: 0; font-size: 12px; white-space: nowrap; }
+.chip.big { font-size: 14px; font-weight: 600; }
+.chip.big i { width: 10px; height: 10px; border-radius: 50%; background: var(--nodata); }
+.chip.big.run i { background: var(--free); }
+.handoff-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; }
+.event-steps { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; }
+.event-steps > div { display: flex; gap: 6px; align-items: center; color: var(--ink-2); }
+.kv.compact { grid-template-columns: 170px 1fr; gap: 4px 10px; }
+.compact-table td { padding: 4px 8px; font-size: 12px; }
+
+.replay-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.replay-state { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.progress { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; margin: 6px 0 4px; }
+.progress > span { display: block; height: 100%; background: var(--signal); }
+.replay-note { font-size: 12px; color: var(--warn-ink); background: #fff7e0; border-left: 3px solid var(--slow); padding: 6px 10px; margin-top: 12px; }
+.components .data td { font-size: 12px; }
+
+@media (max-width: 1180px) {
+  .ops-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ops-kpis > div { border-bottom: 1px solid var(--rule); }
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .handoff-layout, .replay-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .ops-kpis { grid-template-columns: 1fr 1fr; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .kv.compact { grid-template-columns: 130px 1fr; }
+}
+
+/* ---------- hình nền: lưới giấy khảo sát (cố định) + mạng đường cảm biến thật ở dải tiêu đề (components/RoadBackdrop.tsx) */
+.backdrop { position: fixed; top: 0; bottom: 0; left: var(--rail); width: calc(100% - var(--rail)); height: 100%; z-index: 0; pointer-events: none; }
+.shell > .rail, .shell > .main { position: relative; z-index: 1; }
+.roadnet { position: fixed; top: 110px; bottom: 0; right: 0; width: min(62vw, 900px); margin: 0; z-index: 0; pointer-events: none; }
+.roadnet svg { position: absolute; inset: 0 0 26px 0; width: 100%; height: calc(100% - 26px); }
+.roadnet-label { font: 700 30px var(--font); fill: var(--road-label); letter-spacing: .08em; }
+.roadnet figcaption { position: absolute; right: 16px; bottom: 8px; font-size: 11px; color: var(--ink-3); }
+
+@media (max-width: 760px) { .backdrop { left: 0; width: 100%; } .roadnet { display: none; } }
+@media print { .backdrop, .roadnet { display: none; } }
+
+/* ---------- thanh bên: lưới khảo sát nhạt, biểu tượng menu, bản đồ thu nhỏ trạng thái (components/RailMap.tsx) */
+.rail {
+  background-color: var(--panel);
+  background-image: linear-gradient(var(--grid-fine) 1px, transparent 1px), linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.brand, .rail-foot { background: var(--panel); }
+.nav a { display: flex; align-items: center; gap: 10px; background: var(--panel); }
+.nav-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.nav a[aria-current="page"] .nav-icon { stroke-width: 1.8; }
+/* bản đồ thu nhỏ chiếm phần trống còn lại của thanh bên và co theo chiều cao cửa sổ (không ẩn ở màn hình 125%) */
+.railmap { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; margin: 0; padding: 10px 12px 12px; }
+.railmap-empty { flex: 1; }
+.railmap-btn { flex: 1 1 auto; max-height: 272px; min-height: 0; display: flex; padding: 6px; border: 1px solid var(--rule); border-radius: var(--radius-ctl); background: var(--panel); cursor: pointer; }
+.railmap-btn:hover { border-color: var(--rule-strong); }
+.railmap-btn svg { display: block; width: 100%; height: 100%; min-height: 0; }
+.railmap figcaption { flex: none; margin-top: 8px; padding: 0 2px; }
+.railmap-title { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+.railmap-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; color: var(--ink-2); }
+.railmap-legend li { display: flex; align-items: center; gap: 6px; }
+.railmap-legend i { width: 12px; height: 3px; border-radius: 2px; flex: none; }
+.railmap-legend i.dash { background: repeating-linear-gradient(90deg, #b6bbc0 0 3px, transparent 3px 6px); }
+.railmap-legend b { margin-left: auto; font-weight: 600; color: var(--ink); }
+@media (max-height: 640px) { .railmap-btn { display: none; } }
+@media (max-height: 520px) { .railmap { display: none; } }
+@media (max-width: 760px) { .railmap { display: none; } }
+
+/* ---------- Grafana nhúng (pages/ops/GrafanaPanel.tsx) */
+.grafana-bar { flex-wrap: wrap; gap: 10px 14px; margin-bottom: 10px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: var(--radius-ctl); overflow: hidden; background: var(--panel); }
+.seg button { border: 0; border-right: 1px solid var(--rule); background: transparent; padding: 6px 12px; cursor: pointer; color: var(--ink-2); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--signal-wash); color: var(--signal); font-weight: 600; }
+.grafana-links { margin-left: auto; display: inline-flex; gap: 14px; font-size: 13px; }
+.grafana-frame { display: block; width: 100%; height: 780px; border: 1px solid var(--rule); border-radius: var(--radius-ctl); background: var(--panel); }
+@media (max-width: 760px) { .grafana-frame { height: 620px; } .grafana-links { margin-left: 0; } }
+
+.table-note { margin: 0; padding: 10px 16px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--rule); max-width: none; }

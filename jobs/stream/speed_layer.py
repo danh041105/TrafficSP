@@ -26,8 +26,9 @@ from pyspark.sql import DataFrame, SparkSession, functions as F
 from pyspark.sql.streaming import StreamingQueryListener
 
 from common import config
-from common.aggregations import measures
-from common.quality_rules import with_quality
+from common.aggregations import measures, with_calendar_keys
+from common.road_link import with_road_link_key
+from common.quality_rules import sensor_ok_col, with_quality
 from common.read_kafka import read_kafka
 from common.schemas import (SPEED_TRAFFIC_5MIN_FIELDS, SPEED_WEATHER_OBS_FIELDS, TRAFFIC_FIELDS, WEATHER_FIELDS,
                             to_ddl)
@@ -59,8 +60,10 @@ def parse_traffic(raw: DataFrame) -> DataFrame:
     p = raw.select(F.from_json(F.col("value").cast("string"), to_ddl(TRAFFIC_FIELDS)).alias("r"),
                    F.col("partition").alias("kafka_partition"), F.col("offset").alias("kafka_offset"),
                    F.col("timestamp").alias("kafka_ts"))
-    df = p.select(F.col("r.link_id").cast("long").alias("link_id"), "r.data_as_of", "r.speed", "r.travel_time",
-                  "r.run_id", "kafka_partition", "kafka_offset", "kafka_ts")
+    # Loại bản ghi lỗi cảm biến (status = -101) giống hệt Silver (quality_rules.sensor_ok_col) -> Batch và Speed cùng tập
+    df = (p.filter(sensor_ok_col("r.status"))
+           .select(F.col("r.link_id").cast("long").alias("link_id"), "r.data_as_of", "r.speed", "r.travel_time",
+                   "r.run_id", "kafka_partition", "kafka_offset", "kafka_ts"))
     return with_quality(with_event_time(df, "data_as_of"), "speed", "travel_time")
 
 
@@ -70,8 +73,7 @@ def parse_weather(raw: DataFrame) -> DataFrame:
                    F.col("timestamp").alias("kafka_ts"))
     return (p.select("r.*", "kafka_partition", "kafka_offset", "kafka_ts")
              .withColumn("time_utc", F.to_timestamp("time", "yyyy-MM-dd'T'HH:mm"))
-             .filter(F.col("cell_id").isNotNull() & F.col("time_utc").isNotNull())
-             .withColumn("processed_at", F.current_timestamp()))
+             .filter(F.col("cell_id").isNotNull() & F.col("time_utc").isNotNull()))
 
 
 # ------------------------------------------------------------------ 5 phút (sink Iceberg gốc)
@@ -80,22 +82,28 @@ def window_5min(traffic: DataFrame, watermark: str) -> DataFrame:
     agg = (ev.withWatermark("event_time_utc", watermark)
              # business key (link_id, data_as_of) + event_time để state hết hạn theo watermark; không dựa vào offset/run_id
              .dropDuplicates(["link_id", "data_as_of", "event_time_utc"])
-             .groupBy(F.window("event_time_utc", config.SPEED_WINDOW), "link_id")
-             .agg(*measures(), F.max("kafka_ts").alias("kafka_ts_max")))
-    out = (agg.withColumn("window_start_utc", F.col("window.start")).withColumn("window_end_utc", F.col("window.end"))
-              .withColumn("avg_speed", F.when(F.col("n_valid") > 0, F.col("sum_speed") / F.col("n_valid")))
-              .withColumn("quality_flag", F.when(F.col("n_valid") == 0, "NO_VALID_DATA").otherwise("OK"))
+             # road_link_key: stream-static join với gold.dim_road_link (as-of theo ngày New York, như Batch View).
+             # Cửa sổ 5 phút nằm trọn trong một ngày New York -> một khoá / (link, cửa sổ). Đổi dim -> khởi động lại Speed Layer.
+             .transform(lambda d: with_road_link_key(d, d.sparkSession, "event_time_utc"))
+             .groupBy(F.window("event_time_utc", config.SPEED_WINDOW), "link_id", "road_link_key")
+             .agg(*measures()))
+    # Chỉ lưu thành phần cộng được (giống gold.fact_traffic_5min); avg_speed_mph / window_end_utc / quality_flag do view tính
+    out = (with_calendar_keys(agg.withColumn("window_start_utc", F.col("window.start")), "window_start_utc",
+                              config.CALENDAR_TIMEZONE)
               .withColumn("processed_at", F.current_timestamp()))
     return conform(out, SPEED_TRAFFIC_5MIN_FIELDS)
 
 
 # ------------------------------------------------------------------ latest reading (foreachBatch + MERGE INTO)
-LATEST_KEEP = ["event_time_utc", "data_as_of", "speed", "travel_time", "is_valid", "invalid_reason",
-               "kafka_partition", "kafka_offset", "kafka_ts", "run_id"]
+# 1 dòng / link, 2 nhóm cột:
+#   bản HỢP LỆ mới nhất  : reading_ts_utc, speed_mph, travel_time_sec, kafka_offset -> tốc độ hiện tại
+#   quan trắc mới nhất   : last_seen_ts_utc, last_seen_valid, invalid_reason      -> cảm biến còn gửi không, gửi số lỗi hay không
+# Nhờ đó phân biệt cảm biến IM LẶNG (STALE) với cảm biến vẫn gửi nhưng toàn số lỗi (NO_VALID_DATA).
+LATEST_KEEP = ["event_time_utc", "speed", "travel_time", "is_valid", "invalid_reason", "kafka_offset"]
 
 
 def latest_source(b: DataFrame) -> DataFrame:
-    """1 dòng / link trong micro-batch: bản hợp lệ mới nhất + quan trắc mới nhất, xếp theo (event_time, kafka_offset).
+    """1 dòng / link trong micro-batch, xếp theo (event_time, kafka_offset).
     Cùng link luôn cùng partition Kafka (key = link_id) nên kafka_offset phân xử được bản trùng event_time."""
     timed = b.filter(F.col("event_time_utc").isNotNull() & F.col("link_id").isNotNull())
     order = F.struct("event_time_utc", "kafka_offset")
@@ -103,31 +111,23 @@ def latest_source(b: DataFrame) -> DataFrame:
     val = timed.filter("is_valid").groupBy("link_id").agg(F.max_by(F.struct(*LATEST_KEEP), order).alias("v"))
     return (obs.join(val, "link_id", "left")
                .select("link_id",
-                       F.col("v.event_time_utc").alias("valid_event_time"), F.col("v.data_as_of").alias("valid_data_as_of"),
-                       F.col("v.speed").alias("speed"), F.col("v.travel_time").alias("travel_time"),
-                       F.col("v.kafka_partition").alias("valid_kafka_partition"), F.col("v.kafka_offset").alias("valid_kafka_offset"),
-                       F.col("v.kafka_ts").alias("valid_kafka_ts"),
-                       F.col("o.event_time_utc").alias("obs_event_time"), F.col("o.data_as_of").alias("obs_data_as_of"),
-                       F.col("o.speed").alias("obs_speed"), F.col("o.travel_time").alias("obs_travel_time"),
-                       F.col("o.is_valid").alias("obs_is_valid"), F.col("o.invalid_reason").alias("obs_invalid_reason"),
-                       F.col("o.kafka_partition").alias("obs_kafka_partition"), F.col("o.kafka_offset").alias("obs_kafka_offset"),
-                       F.col("o.kafka_ts").alias("obs_kafka_ts"), F.col("o.run_id").alias("run_id")))
+                       F.col("v.event_time_utc").alias("reading_ts_utc"), F.col("v.speed").alias("speed_mph"),
+                       F.col("v.travel_time").alias("travel_time_sec"), F.col("v.kafka_offset").alias("kafka_offset"),
+                       F.col("o.event_time_utc").alias("last_seen_ts_utc"), F.col("o.is_valid").alias("last_seen_valid"),
+                       F.col("o.invalid_reason").alias("invalid_reason")))
 
 
-VALID_COLS = ["valid_event_time", "valid_data_as_of", "speed", "travel_time", "valid_kafka_partition",
-              "valid_kafka_offset", "valid_kafka_ts"]
-OBS_COLS = ["obs_event_time", "obs_data_as_of", "obs_speed", "obs_travel_time", "obs_is_valid", "obs_invalid_reason",
-            "obs_kafka_partition", "obs_kafka_offset", "obs_kafka_ts", "run_id"]
-NEWER_VALID = ("s.valid_event_time IS NOT NULL AND (t.valid_event_time IS NULL OR s.valid_event_time > t.valid_event_time "
-               "OR (s.valid_event_time = t.valid_event_time AND s.valid_kafka_offset > t.valid_kafka_offset))")
-NEWER_OBS = ("t.obs_event_time IS NULL OR s.obs_event_time > t.obs_event_time "
-             "OR (s.obs_event_time = t.obs_event_time AND s.obs_kafka_offset > t.obs_kafka_offset)")
+VALID_COLS = ["reading_ts_utc", "speed_mph", "travel_time_sec", "kafka_offset"]
+OBS_COLS = ["last_seen_ts_utc", "last_seen_valid", "invalid_reason"]
+NEWER_VALID = ("s.reading_ts_utc IS NOT NULL AND (t.reading_ts_utc IS NULL OR s.reading_ts_utc > t.reading_ts_utc "
+               "OR (s.reading_ts_utc = t.reading_ts_utc AND s.kafka_offset > t.kafka_offset))")
+NEWER_OBS = "t.last_seen_ts_utc IS NULL OR s.last_seen_ts_utc > t.last_seen_ts_utc"
 
 
 def merge_sql(view: str) -> str:
     sets = [f"{c} = CASE WHEN {NEWER_VALID} THEN s.{c} ELSE t.{c} END" for c in VALID_COLS]
     sets += [f"{c} = CASE WHEN {NEWER_OBS} THEN s.{c} ELSE t.{c} END" for c in OBS_COLS]
-    sets += ["batch_id = s.batch_id", "updated_at = s.updated_at"]
+    sets += ["updated_at = s.updated_at"]
     return (f"MERGE INTO {config.SPEED_TRAFFIC_LATEST} t USING {view} s ON t.link_id = s.link_id "
             f"WHEN MATCHED AND (({NEWER_VALID}) OR ({NEWER_OBS})) THEN UPDATE SET {', '.join(sets)} "
             f"WHEN NOT MATCHED THEN INSERT *")
@@ -148,8 +148,7 @@ def make_latest_sink(ops: OpsLog):
             b.unpersist(); return
         reasons = {r["invalid_reason"]: int(r["count"]) for r in
                    b.filter(F.col("invalid_reason").isNotNull()).groupBy("invalid_reason").count().collect()}
-        src = (latest_source(b).withColumn("batch_id", F.lit(batch_id).cast("bigint"))
-                               .withColumn("updated_at", F.current_timestamp()))
+        src = latest_source(b).withColumn("updated_at", F.current_timestamp())
         view = f"speed_latest_src_{batch_id}"
         src.createOrReplaceTempView(view)
         t0 = time.time()
@@ -158,7 +157,7 @@ def make_latest_sink(ops: OpsLog):
         done = time.time()
         spark.catalog.dropTempView(view)
         ops.write("speed_batch_stats", {"query": "speed_latest", "batch_id": batch_id, "n_rows": s["n"], "n_valid": s["v"],
-                                        "n_dst_ambiguous": s["amb"], "n_dst_nonexistent": s["nonex"], "n_unparseable": s["unparse"],
+                                        "n_dst_duplicated": s["amb"], "n_dst_nonexistent": s["nonex"], "n_unparseable": s["unparse"],
                                         "invalid_reasons": reasons, "min_event_time": s["mn"], "max_event_time": s["mx"]})
         ops.write("speed_latency", {"query": "speed_latest", "batch_id": batch_id, "n_items": s["n"], "merge_ms": merge_ms,
                                     "kafka_ts_min": s["k_min"], "kafka_ts_p05": s["k_p05"], "kafka_ts_p50": s["k_p50"],

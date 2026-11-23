@@ -3,10 +3,10 @@ chưa công bố) + Silver cho các ngày UTC [start, end]. Thoát 1 nếu có k
 
 Bắt buộc:
   silver_no_null_key        : Silver không có link_id / traffic_utc NULL
-  gold_unique_grain         : Gold 5 phút không trùng (link_id, window_start_utc); 1 giờ không trùng (link_id, hour_utc)
+  gold_unique_grain         : Gold 5 phút không trùng (link_id, window_start_utc); 1 giờ không trùng (link_id, hour_start_utc)
   gold_complete             : tổng n_records Gold 5 phút = số dòng Silver cùng khoảng
-  gold_counts_consistent    : n_valid + n_zero + n_invalid_other <= n_records, n_valid >= 0
-  gold_avg_in_range         : avg_speed = sum_speed / n_valid, nằm trong (0, 100] và min <= avg <= max
+  gold_counts_consistent    : n_valid + n_zero <= n_records, n_valid >= 0
+  gold_avg_in_range         : avg = sum_speed_mph / n_valid nằm trong (0, 100]; n_valid = 0 thì sum_speed_mph = 0
   hourly_equals_5min        : tổng thành phần theo giờ = tổng các cửa sổ 5 phút trong giờ đó
 Báo cáo (không chặn): số bản ghi quarantine (DST/thiếu khoá), tỷ lệ cửa sổ NO_VALID_DATA.
 Chạy: spark-submit .../dq_checks.py --start-day 2025-12-01 --end-day 2025-12-02
@@ -31,23 +31,23 @@ def run(spark, start: dt.date, end: dt.date) -> dict:
     rng = lambda c: (F.col(c) >= F.lit(lo)) & (F.col(c) < F.lit(hi))
     silver = silver_for_utc_days(spark, start, end)
     g5 = spark.table(config.GOLD_TRAFFIC_5MIN).filter(rng("window_start_utc"))
-    gh = spark.table(config.GOLD_TRAFFIC_HOURLY).filter(rng("hour_utc"))
+    gh = spark.table(config.GOLD_TRAFFIC_HOURLY).filter(rng("hour_start_utc"))
     s = silver.agg(F.count("*").alias("n"), F.sum((F.col("link_id").isNull() | F.col("traffic_utc").isNull()).cast("int")).alias("null_key")).collect()[0]
     a5 = g5.agg(F.count("*").alias("rows"), F.countDistinct("link_id", "window_start_utc").alias("keys"),
                 F.coalesce(F.sum("n_records"), F.lit(0)).alias("n"),
-                F.sum(((F.col("n_valid") + F.col("n_zero") + F.col("n_invalid_other")) > F.col("n_records")).cast("int")).alias("bad_counts"),
+                F.sum(((F.col("n_valid") + F.col("n_zero")) > F.col("n_records")).cast("int")).alias("bad_counts"),
                 F.sum((F.col("n_valid") < 0).cast("int")).alias("neg"),
-                F.sum(((F.col("n_valid") > 0) & (
-                    (F.abs(F.col("avg_speed") - F.col("sum_speed") / F.col("n_valid")) > 1e-9) | (F.col("avg_speed") <= 0)
-                    | (F.col("avg_speed") > 100) | (F.col("avg_speed") < F.col("min_speed") - 1e-9)
-                    | (F.col("avg_speed") > F.col("max_speed") + 1e-9))).cast("int")).alias("bad_avg"),
+                # avg_speed_mph không lưu trong bảng: kiểm tra trên sum_speed_mph / n_valid (giống view serving tính)
+                F.sum(F.when(F.col("n_valid") > 0, (F.col("sum_speed_mph") / F.col("n_valid") <= 0)
+                                                   | (F.col("sum_speed_mph") / F.col("n_valid") > 100))
+                       .otherwise(F.col("sum_speed_mph") != 0).cast("int")).alias("bad_avg"),
                 F.sum((F.col("n_valid") == 0).cast("int")).alias("no_valid")).collect()[0]
-    ah = gh.agg(F.count("*").alias("rows"), F.countDistinct("link_id", "hour_utc").alias("keys")).collect()[0]
-    roll = (g5.groupBy("link_id", F.date_trunc("hour", "window_start_utc").alias("hour_utc"))
-              .agg(F.sum("n_records").alias("n5"), F.sum("n_valid").alias("v5"), F.sum("sum_speed").alias("s5")))
-    mism = (roll.join(gh, ["link_id", "hour_utc"], "full_outer")
+    ah = gh.agg(F.count("*").alias("rows"), F.countDistinct("link_id", "hour_start_utc").alias("keys")).collect()[0]
+    roll = (g5.groupBy("link_id", F.date_trunc("hour", "window_start_utc").alias("hour_start_utc"))
+              .agg(F.sum("n_records").alias("n5"), F.sum("n_valid").alias("v5"), F.sum("sum_speed_mph").alias("s5")))
+    mism = (roll.join(gh, ["link_id", "hour_start_utc"], "full_outer")
                 .filter(F.col("n5").isNull() | F.col("n_records").isNull() | (F.col("n5") != F.col("n_records"))
-                        | (F.col("v5") != F.col("n_valid")) | (F.abs(F.col("s5") - F.col("sum_speed")) > 1e-6))).count()
+                        | (F.col("v5") != F.col("n_valid")) | (F.abs(F.col("s5") - F.col("sum_speed_mph")) > 1e-6))).count()
     try:
         quarantine = spark.table(config.SILVER_TRAFFIC_QUARANTINE).filter(
             F.col("date").between(F.lit(start - dt.timedelta(days=1)), F.lit(end))).groupBy("reason").count().collect()

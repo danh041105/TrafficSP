@@ -4,6 +4,10 @@
 #   - Không sửa giá trị gốc; chỉ thêm is_valid + invalid_reason.
 #   - Trạng thái giao thông (D-18, quy tắc phân tích): tỷ lệ speed / free_flow_speed của từng link.
 SPEED_MAX_MPH = 100.0
+# status = -101: cảm biến báo lỗi -> bản ghi bị LOẠI hẳn (không vào Silver, không vào Speed Layer, không vào Gold).
+# Giữ status NULL (theo quy ước gold-dev: chỉ loại đúng -101). Batch (data_cleaning.drop_invalid_status) và Speed
+# (speed_layer.parse_traffic) cùng gọi sensor_ok_col() -> hai lớp đếm/cộng trên cùng một tập bản ghi.
+SENSOR_ERROR_STATUS = -101
 CONGESTED_LT = 0.5
 SLOW_LT = 0.8
 
@@ -50,6 +54,13 @@ def traffic_state(speed, free_flow, n_valid: int = 1, min_samples: int = 1) -> s
 
 
 # ---------------- Spark ----------------
+def sensor_ok_col(status_col="status"):
+    """True nếu bản ghi KHÔNG phải lỗi cảm biến (status khác -101 hoặc NULL)."""
+    from pyspark.sql import functions as F
+    st = F.col(status_col).cast("int")
+    return st.isNull() | (st != SENSOR_ERROR_STATUS)
+
+
 def invalid_reason_col(speed_col="speed", tt_col="travel_time"):
     from pyspark.sql import functions as F
     s, t = F.col(speed_col), F.col(tt_col)

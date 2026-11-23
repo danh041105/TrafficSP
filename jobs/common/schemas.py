@@ -104,6 +104,7 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "job_run_id": "string",        # mã của lần chạy job Silver (uuid)
     "source": "string",            # "traffic" / "weather"
     "event_date": "date",          # traffic: ngày theo giờ New York; weather: ngày theo UTC
+    "event_hour": "int",           # traffic: giờ theo New York; weather: giờ theo UTC
     "kafka_partition": "int",
     "min_offset": "bigint",
     "max_offset": "bigint",
@@ -130,35 +131,41 @@ SILVER_TRAFFIC_QUARANTINE_FIELDS = {
     "processed_ts": "timestamp",
 }
 
-# ----------------- Gold (Batch View) ----------------------
-# Grain (link_id, window_start_utc) 5 phút; (link_id, hour_utc) 1 giờ. Chỉ lưu thành phần cộng được + min/max.
-GOLD_AGG_MEASURES = {
-    "n_records": "int",
-    "n_valid": "int",
-    "n_zero": "int",
-    "n_invalid_other": "int",
-    "sum_speed": "double",
-    "sum_speed_sq": "double",
-    "sum_travel_time": "bigint",
-    "min_speed": "double",
-    "max_speed": "double",
+# ----------------- Gold (Batch View của Lambda, theo quy ước gold-dev) ----------------------
+# gold.fact_traffic_5min: grain (link_id, window_start_utc); gold.fact_traffic_hourly: grain (link_id, hour_start_utc).
+# Đặt tên theo jobs/ddl/gold.sql: đơn vị trong tên cột (_mph, _sec), thời điểm *_utc, khoá lịch date_key (YYYYMMDD)
+# và hour_key (0-23) theo giờ New York -> join được với dim_date / dim_hour. link_id = khoá nghiệp vụ của Silver
+# (dim_road_link.link_id là STRING: join bằng CAST). road_link_key = khoá thay thế SCD2 của dim_road_link (như các fact
+# của gold-dev), tra as-of theo ngày New York (common/road_link.py). Chỉ lưu thành phần CỘNG ĐƯỢC; cột suy ra do view tính:
+# avg_speed_mph = sum_speed_mph / n_valid, n_invalid_other = n_records - n_valid - n_zero,
+# window_end_utc = window_start_utc + 5', quality_flag = NO_VALID_DATA khi n_valid = 0.
+CALENDAR_KEY_FIELDS = {
+    "date_key": "int",               # YYYYMMDD của ngày New York (FK logic tới dim_date.date_key)
+    "hour_key": "int",               # giờ New York 0-23 (FK logic tới dim_hour.hour_key)
 }
-GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start_utc": "timestamp", "window_end_utc": "timestamp",
-                            **GOLD_AGG_MEASURES, "avg_speed": "double", "quality_flag": "string",
-                            "batch_run_id": "string", "processed_at": "timestamp"}
-GOLD_TRAFFIC_HOURLY_FIELDS = {"link_id": "bigint", "hour_utc": "timestamp",
-                              **GOLD_AGG_MEASURES, "avg_speed": "double", "n_windows": "int",
+GOLD_AGG_MEASURES = {
+    "n_records": "int",              # tổng bản ghi trong khung
+    "n_valid": "int",                # bản hợp lệ (0 < speed <= 100, travel_time > 0)
+    "n_zero": "int",                 # bản speed = 0 (không có số đo)
+    "sum_speed_mph": "double",       # tổng speed các bản hợp lệ  -> avg = sum_speed_mph / n_valid
+    "sum_speed_sq": "double",        # tổng bình phương speed hợp lệ (mph^2) -> độ lệch chuẩn
+    "sum_travel_time_sec": "bigint", # tổng travel_time các bản hợp lệ (giây)
+}
+GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "road_link_key": "int", "window_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                            **GOLD_AGG_MEASURES, "batch_run_id": "string", "processed_at": "timestamp"}
+GOLD_TRAFFIC_HOURLY_FIELDS = {"link_id": "bigint", "road_link_key": "int", "hour_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                              **GOLD_AGG_MEASURES, "n_windows": "int",
                               "batch_run_id": "string", "processed_at": "timestamp"}
 
 # Nhật ký trạng thái Lambda handoff (append-only: mỗi lần chuyển trạng thái = 1 dòng; không UPDATE/DELETE).
-# T_batch hiện hành = t_batch của dòng PUBLISHED mới nhất. status: PREPARING | VALIDATED | PUBLISHED | FAILED.
+# batch_state hiện hành = batch_state của dòng PUBLISHED mới nhất. status: PREPARING | VALIDATED | PUBLISHED | FAILED.
 GOLD_LAMBDA_CONTROL_FIELDS = {
     "handoff_id": "string",
     "status": "string",
-    "t_batch_prev": "timestamp",
-    "t_batch": "timestamp",               # mốc mới (UTC, bội 5 phút); batch cho window_start_utc < t_batch
+    "batch_state_prev": "timestamp",
+    "batch_state": "timestamp",           # mốc mới (UTC, bội 5 phút); batch cho window_start_utc < batch_state
     "batch_run_id": "string",
-    "snapshot_5min": "bigint",            # snapshot gold.traffic_5min_batch đã kiểm chứng (tag published trỏ vào đây)
+    "snapshot_5min": "bigint",            # snapshot gold.fact_traffic_5min đã kiểm chứng (tag published trỏ vào đây)
     "snapshot_hourly": "bigint",
     "checks": "string",                   # JSON kết quả kiểm tra
     "message": "string",
@@ -166,36 +173,28 @@ GOLD_LAMBDA_CONTROL_FIELDS = {
 }
 
 # ----------------- Speed (chỉ Speed Layer ghi) ----------------------
-SPEED_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "window_start_utc": "timestamp", "window_end_utc": "timestamp",
-                             **GOLD_AGG_MEASURES, "avg_speed": "double", "quality_flag": "string",
-                             "kafka_ts_max": "timestamp",    # message cuối của cửa sổ vào Kafka lúc nào (đo độ trễ)
-                             "processed_at": "timestamp"}
-# 1 dòng / link. Hai nhóm cột độc lập: bản HỢP LỆ mới nhất (valid_*) và quan trắc mới nhất bất kể hợp lệ (obs_*),
+# Cùng cột (tên, kiểu, khoá lịch) với gold.fact_traffic_5min -> view ghép 2 bảng bằng UNION ALL.
+SPEED_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "road_link_key": "int", "window_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                             **GOLD_AGG_MEASURES, "processed_at": "timestamp"}    # lúc Speed Layer ghi dòng này
+# 1 dòng / link. Bản HỢP LỆ mới nhất (tốc độ hiện tại) + quan trắc mới nhất bất kể hợp lệ (cảm biến còn gửi không),
 # để phân biệt cảm biến im lặng (STALE) với cảm biến vẫn gửi nhưng giá trị không hợp lệ (NO_VALID_DATA).
 SPEED_TRAFFIC_LATEST_FIELDS = {
     "link_id": "bigint",
-    "valid_event_time": "timestamp", "valid_data_as_of": "string", "speed": "double", "travel_time": "bigint",
-    "valid_kafka_partition": "int", "valid_kafka_offset": "bigint", "valid_kafka_ts": "timestamp",
-    "obs_event_time": "timestamp", "obs_data_as_of": "string", "obs_speed": "double", "obs_travel_time": "bigint",
-    "obs_is_valid": "boolean", "obs_invalid_reason": "string",
-    "obs_kafka_partition": "int", "obs_kafka_offset": "bigint", "obs_kafka_ts": "timestamp",
-    "run_id": "string", "batch_id": "bigint", "updated_at": "timestamp",
+    "reading_ts_utc": "timestamp",    # thời điểm (UTC) của bản hợp lệ mới nhất (tên như fact_traffic_reading)
+    "speed_mph": "double",            # của bản hợp lệ đó
+    "travel_time_sec": "bigint",      # của bản hợp lệ đó
+    "kafka_offset": "bigint",         # phân xử 2 bản trùng reading_ts_utc (offset lớn hơn = mới hơn)
+    "last_seen_ts_utc": "timestamp",  # lần cuối nhận bản ghi, hợp lệ hay không
+    "last_seen_valid": "boolean",     # bản nhận cuối có hợp lệ không
+    "invalid_reason": "string",       # lý do không hợp lệ của bản nhận cuối (NULL nếu hợp lệ)
+    "updated_at": "timestamp",
 }
+# Không lưu latitude/longitude: tọa độ ô thời tiết cố định, nằm ở silver.weather_cleaned (join theo cell_id).
 SPEED_WEATHER_OBS_FIELDS = {
     "cell_id": "string", "time_utc": "timestamp",
     "temperature_2m": "double", "relative_humidity_2m": "int", "precipitation": "double", "snowfall": "double",
     "wind_speed_10m": "double", "wind_gusts_10m": "double", "weather_code": "int",
-    "run_id": "string", "kafka_partition": "int", "kafka_offset": "bigint", "kafka_ts": "timestamp",
-    "processed_at": "timestamp",
-}
-GOLD_LINK_BASELINE_FIELDS = {
-    "link_id": "bigint",
-    "free_flow_speed": "double",      # p85 tốc độ hợp lệ, lúc khô, 22:00-05:59 giờ New York (D-18)
-    "n_samples": "bigint",
-    "history_start": "date",
-    "history_end": "date",
-    "baseline_version": "string",
-    "computed_ts": "timestamp",
+    "kafka_offset": "bigint",         # bản tin trùng (cell_id, time_utc): offset lớn hơn = bản mới hơn
 }
 
 # Producer: dùng field_names() để chọn cột gửi đi.

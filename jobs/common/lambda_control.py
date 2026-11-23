@@ -2,7 +2,7 @@
 
 gold.lambda_control là nhật ký APPEND-ONLY: mỗi lần đổi trạng thái của một handoff = 1 dòng mới
 (PREPARING -> VALIDATED -> PUBLISHED, hoặc -> FAILED). Không UPDATE/DELETE nên không cần giao dịch nhiều dòng.
-T_batch hiện hành = t_batch lớn nhất trong các dòng PUBLISHED (1970-01-01 nếu chưa có).
+batch_state hiện hành = batch_state lớn nhất trong các dòng PUBLISHED (1970-01-01 nếu chưa có).
 """
 import datetime as dt
 
@@ -22,8 +22,8 @@ def naive_utc(t):
     return t.astimezone(dt.timezone.utc).replace(tzinfo=None) if t.tzinfo else t
 
 
-def current_t_batch(rows: list[dict]) -> dt.datetime:
-    pub = [naive_utc(r["t_batch"]) for r in rows if r["status"] == PUBLISHED and r.get("t_batch")]
+def current_batch_state(rows: list[dict]) -> dt.datetime:
+    pub = [naive_utc(r["batch_state"]) for r in rows if r["status"] == PUBLISHED and r.get("batch_state")]
     return max(pub) if pub else EPOCH
 
 
@@ -42,11 +42,11 @@ def pending_handoffs(rows: list[dict]) -> list[dict]:
 def recovery_action(pending: dict, tag_5min: int | None, tag_hourly: int | None, t_published: dt.datetime) -> str:
     """Quyết định cho một handoff dang dở (đang giữ khoá nên không còn tiến trình nào khác chạy nó):
       - PREPARING                      -> FAILED (Batch View có thể đã ghi nhưng chưa kiểm chứng; tag chưa đổi -> Trino không thấy)
-      - VALIDATED, tag đã trỏ đúng snapshot đã kiểm chứng và t_batch > T_batch hiện hành -> PUBLISHED (hoàn tất bước cuối)
+      - VALIDATED, tag đã trỏ đúng snapshot đã kiểm chứng và batch_state > batch_state hiện hành -> PUBLISHED (hoàn tất bước cuối)
       - VALIDATED còn lại             -> FAILED (tag chưa dời hoặc đã bị handoff sau dời tiếp)."""
     if pending["status"] == VALIDATED and pending.get("snapshot_5min") is not None \
             and tag_5min == pending["snapshot_5min"] and tag_hourly == pending.get("snapshot_hourly") \
-            and naive_utc(pending["t_batch"]) > t_published:
+            and naive_utc(pending["batch_state"]) > t_published:
         return PUBLISHED
     return FAILED
 
@@ -62,11 +62,11 @@ def choose_t_new(until: str, max_event_ts: dt.datetime | None, lateness_minutes:
 
 
 def validate_move(t_old: dt.datetime, t_new: dt.datetime, safe_bound: dt.datetime, correction: bool) -> str | None:
-    """None nếu được phép; ngược lại là lý do từ chối. T_batch không bao giờ giảm; chỉ giữ nguyên khi --correction."""
+    """None nếu được phép; ngược lại là lý do từ chối. batch_state không bao giờ giảm; chỉ giữ nguyên khi --correction."""
     if t_new < t_old:
-        return f"T_batch không được giảm: {t_old} -> {t_new}"
+        return f"batch_state không được giảm: {t_old} -> {t_new}"
     if t_new == t_old and not correction:
-        return f"T_batch không đổi ({t_old}); dùng --correction để công bố lại dữ liệu đã sửa"
+        return f"batch_state không đổi ({t_old}); dùng --correction để công bố lại dữ liệu đã sửa"
     if t_new > safe_bound:
         return f"T_new {t_new} vượt mốc an toàn {safe_bound} (cửa sổ chưa đủ dữ liệu theo watermark)"
     if t_new.minute % 5 or t_new.second or t_new.microsecond:

@@ -1,6 +1,7 @@
 """Batch View 5 phút + 1 giờ (Gold, Iceberg) từ silver.traffic_cleaned. Chỉ Batch Layer ghi các bảng này.
 
-Grain: gold.traffic_5min_batch (link_id, window_start_utc); gold.traffic_hourly (link_id, hour_utc).
+Grain: gold.fact_traffic_5min (link_id, window_start_utc); gold.fact_traffic_hourly (link_id, hour_start_utc).
+Tên cột theo quy ước gold-dev (jobs/ddl/gold.sql): *_mph, *_sec, date_key / hour_key theo giờ New York.
 Đơn vị recompute = NGÀY UTC. Mỗi bảng ghi bằng MỘT commit `overwrite(<khoảng ngày>)`: thay nguyên tử toàn bộ dữ liệu của
 các ngày đó (kể cả ngày không còn dòng nào) -> chạy lại không sinh trùng, không để sót dữ liệu cũ.
 Ghi xong KHÔNG làm Trino thấy ngay: Trino đọc Batch View qua tag `published`, chỉ lambda_handoff.py dời tag sau khi kiểm chứng.
@@ -17,7 +18,9 @@ import uuid
 
 from pyspark.sql import DataFrame, SparkSession, functions as F
 
-from common.aggregations import aggregate_5min, rollup_hourly, with_avg
+from common.aggregations import aggregate_5min, rollup_hourly, with_calendar_keys
+from common.road_link import with_road_link_key
+from common import config
 from common.config import GOLD_TRAFFIC_5MIN, GOLD_TRAFFIC_HOURLY, SILVER_TRAFFIC_CLEANED
 from common.logger import get_logger
 from common.quality_rules import with_quality
@@ -51,11 +54,14 @@ def current_snapshot(spark: SparkSession, table: str) -> int | None:
 
 def build(spark: SparkSession, start: dt.date, end: dt.date, batch_run_id: str):
     silver = with_quality(silver_for_utc_days(spark, start, end), "speed", "travel_time")
-    agg5 = with_avg(aggregate_5min(silver.withColumnRenamed("traffic_utc", "event_time_utc")))
-    five = (agg5.withColumnRenamed("window_start", "window_start_utc").withColumnRenamed("window_end", "window_end_utc")
-                .withColumn("quality_flag", F.when(F.col("n_valid") == 0, "NO_VALID_DATA").otherwise("OK"))
+    agg5 = aggregate_5min(silver.withColumnRenamed("traffic_utc", "event_time_utc"))
+    # Chỉ lưu thành phần cộng được; avg_speed / window_end_utc / quality_flag do view serving tính khi đọc
+    five = (with_calendar_keys(with_road_link_key(agg5.withColumnRenamed("window_start", "window_start_utc"), spark,
+                                                  "window_start_utc"), "window_start_utc", config.CALENDAR_TIMEZONE)
                 .withColumn("batch_run_id", F.lit(batch_run_id)).withColumn("processed_at", F.current_timestamp()))
-    hourly = (with_avg(rollup_hourly(agg5))
+    # Giờ UTC luôn nằm trọn trong một ngày New York (nửa đêm NY rơi đúng đầu giờ UTC) -> một road_link_key / (link, giờ)
+    hourly = (with_calendar_keys(with_road_link_key(rollup_hourly(agg5), spark, "hour_start_utc"), "hour_start_utc",
+                                 config.CALENDAR_TIMEZONE)
               .withColumn("batch_run_id", F.lit(batch_run_id)).withColumn("processed_at", F.current_timestamp()))
     return silver, conform(five, GOLD_TRAFFIC_5MIN_FIELDS), conform(hourly, GOLD_TRAFFIC_HOURLY_FIELDS)
 
@@ -73,7 +79,7 @@ def run(spark: SparkSession, start: dt.date, end: dt.date, batch_run_id: str | N
         five.writeTo(GOLD_TRAFFIC_5MIN).overwrite(in_range("window_start_utc"))
         stats["snapshot_5min"] = current_snapshot(spark, GOLD_TRAFFIC_5MIN)
     if only in (None, "hourly"):
-        hourly.writeTo(GOLD_TRAFFIC_HOURLY).overwrite(in_range("hour_utc"))
+        hourly.writeTo(GOLD_TRAFFIC_HOURLY).overwrite(in_range("hour_start_utc"))
         stats["snapshot_hourly"] = current_snapshot(spark, GOLD_TRAFFIC_HOURLY)
     five.unpersist(); hourly.unpersist()
     log.info("[batch_views] %s", json.dumps(stats, default=str))

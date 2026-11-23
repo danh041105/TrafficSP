@@ -1,7 +1,12 @@
-# Tạo namespace + bảng Gold trên Iceberg. Idempotent. Hai nhóm bảng, không trùng tên:
-#   1. Mô hình sao (dim_* / fact_*): định nghĩa trong gold.sql (cùng thư mục), chỉ CREATE IF NOT EXISTS.
-#   2. Bảng Lambda (Batch View 5 phút / 1 giờ, link_baseline, lambda_control) dưới đây:
-#   - CREATE TABLE IF NOT EXISTS; bảng đã có thì chỉ TIẾN HOÁ schema (thêm cột thiếu / đổi tên cột cũ), không DROP.
+# Tạo namespace + bảng Gold trên Iceberg. Idempotent. Một quy ước đặt tên chung (mô hình sao của gold-dev):
+#   1. dim_* / fact_* định nghĩa trong gold.sql (cùng thư mục, của nhánh gold-dev): CREATE IF NOT EXISTS.
+#      Dữ liệu do batch/transformation/silver_to_gold.py (gold-dev) nạp; free-flow nằm ở dim_road_link.free_flow_speed_mph
+#      (thay bảng gold.link_baseline cũ).
+#   2. Bảng Lambda dưới đây, đặt tên cùng quy ước: fact_traffic_5min, fact_traffic_hourly (Batch View, có date_key /
+#      hour_key theo giờ New York, cột *_mph / *_sec) và lambda_control (nhật ký handoff).
+#   - Bảng đã có thì TIẾN HOÁ schema: đổi tên cột cũ, thêm cột thiếu, bỏ cột liệt kê trong `drops`, sắp lại thứ tự cột
+#     theo schema (chỉ đổi metadata: file dữ liệu và snapshot cũ còn nguyên, time travel vẫn đọc được). Không DROP TABLE.
+#   - Bảng cũ trước khi đổi tên (gold.traffic_5min_batch, gold.traffic_hourly, gold.link_baseline) KHÔNG bị xoá ở đây.
 #   - Bảng Batch View có tag `published` (Trino đọc Batch View qua tag này - xem docs/lambda_handoff.md).
 # Chạy: docker exec traffic-spark-master /opt/spark/bin/spark-submit /opt/spark/jobs/ddl/gold.py
 import argparse
@@ -10,8 +15,7 @@ from pathlib import Path
 from pyspark.sql import SparkSession
 
 from common import config
-from common.schemas import (GOLD_LAMBDA_CONTROL_FIELDS, GOLD_LINK_BASELINE_FIELDS, GOLD_TRAFFIC_5MIN_FIELDS,
-                            GOLD_TRAFFIC_HOURLY_FIELDS, to_ddl)
+from common.schemas import GOLD_LAMBDA_CONTROL_FIELDS, GOLD_TRAFFIC_5MIN_FIELDS, GOLD_TRAFFIC_HOURLY_FIELDS, to_ddl
 from common.spark_session import build_spark
 
 BASE_PROPS = {
@@ -22,17 +26,22 @@ BASE_PROPS = {
 
 
 def create_table(spark: SparkSession, table: str, fields: dict, partition_by: str | None = None,
-                 props: dict | None = None, renames: dict | None = None):
+                 props: dict | None = None, renames: dict | None = None, drops: tuple = ()):
     partition = f"PARTITIONED BY ({partition_by})" if partition_by else ""
     tblprops = ", ".join(f"'{k}' = '{v}'" for k, v in {**BASE_PROPS, **(props or {})}.items())
     spark.sql(f"CREATE TABLE IF NOT EXISTS {table} ({to_ddl(fields)}) USING iceberg {partition} TBLPROPERTIES ({tblprops})")
-    evolve_schema(spark, table, fields, renames or {})
+    evolve_schema(spark, table, fields, renames or {}, drops)
 
 
-def evolve_schema(spark: SparkSession, table: str, fields: dict, renames: dict) -> bool:
-    """Bảng có sẵn từ phiên bản trước: đổi tên cột cũ -> mới, thêm cột còn thiếu. Không xoá cột, không xoá dữ liệu.
-    Trả True nếu schema đã đổi."""
-    have = {r["col_name"] for r in spark.sql(f"DESCRIBE TABLE {table}").collect() if r["col_name"] and not r["col_name"].startswith("#")}
+def _columns(spark: SparkSession, table: str) -> list[str]:
+    return spark.table(table).columns
+
+
+def evolve_schema(spark: SparkSession, table: str, fields: dict, renames: dict, drops: tuple = ()) -> bool:
+    """Bảng có sẵn từ phiên bản trước: đổi tên cột cũ -> mới, thêm cột còn thiếu, bỏ các cột trong `drops`
+    (chỉ cột không còn trong schema; không xoá file dữ liệu), rồi sắp thứ tự cột đúng như `fields`
+    (sink Iceberg của Spark kiểm tra thứ tự cột). Trả True nếu schema đã đổi."""
+    have = set(_columns(spark, table))
     changed = False
     for old, new in renames.items():
         if old in have and new not in have:
@@ -43,7 +52,22 @@ def evolve_schema(spark: SparkSession, table: str, fields: dict, renames: dict) 
         if col not in have:
             spark.sql(f"ALTER TABLE {table} ADD COLUMN `{col}` {typ}")
             changed = True
+    for col in drops:
+        if col in have and col not in fields:
+            spark.sql(f"ALTER TABLE {table} DROP COLUMN `{col}`")
+            changed = True
+    wanted = list(fields)
+    current = [c for c in _columns(spark, table) if c in fields]
+    if current != wanted:
+        spark.sql(f"ALTER TABLE {table} ALTER COLUMN `{wanted[0]}` FIRST")
+        for prev, col in zip(wanted, wanted[1:]):
+            spark.sql(f"ALTER TABLE {table} ALTER COLUMN `{col}` AFTER `{prev}`")
+        changed = True
     return changed
+
+
+# Cột suy ra được, bỏ khỏi bảng 5 phút (view serving tính khi đọc) - xem common/schemas.py
+DERIVED_5MIN = ("window_end_utc", "n_invalid_other", "min_speed", "max_speed", "avg_speed", "quality_flag")
 
 
 def _ref(spark: SparkSession, table: str, name: str) -> int | None:
@@ -69,8 +93,10 @@ def ensure_tag(spark: SparkSession, table: str, tag: str):
 
 
 def run_sql_file(spark: SparkSession, path: Path):
-    """Chạy các câu lệnh trong gold.sql (mô hình sao). File chỉ có comment cả dòng và không có ';' trong chuỗi."""
+    """Chạy các câu lệnh trong gold.sql (mô hình sao của gold-dev). File chỉ có comment cả dòng và không có ';'
+    trong chuỗi. Tên `lakehouse.gold` trong file được thay bằng config.GOLD_NAMESPACE (để chạy thử cô lập)."""
     sql = "\n".join(line for line in path.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("--"))
+    sql = sql.replace("lakehouse.gold", config.GOLD_NAMESPACE)
     for statement in sql.split(";"):
         if statement.strip():
             spark.sql(statement.strip())
@@ -91,15 +117,14 @@ def main():
         for name in STAR_TABLES:
             spark.sql(f"DROP TABLE IF EXISTS {config.GOLD_NAMESPACE}.{name} PURGE")
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {config.GOLD_NAMESPACE}")
-    run_sql_file(spark, Path(__file__).with_suffix(".sql"))     # dim_* / fact_* (gold.sql)
+    run_sql_file(spark, Path(__file__).with_suffix(".sql"))     # dim_* / fact_* của gold-dev
     # Schema chỉ chứa VIEW Trino (jobs/serving/trino_views.sql). Spark tạo schema để Trino không cần quyền tạo schema.
     spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {config.SERVING_SCHEMA}")
-    # Phân vùng theo NGÀY UTC: Batch View ghi lại từng ngày (overwritePartitions) -> chạy lại không sinh trùng
-    create_table(spark, config.GOLD_TRAFFIC_5MIN, GOLD_TRAFFIC_5MIN_FIELDS, "days(window_start_utc)")
-    create_table(spark, config.GOLD_TRAFFIC_HOURLY, GOLD_TRAFFIC_HOURLY_FIELDS, "days(hour_utc)",
-                 renames={"computed_ts": "processed_at"})
-    create_table(spark, config.GOLD_LINK_BASELINE, GOLD_LINK_BASELINE_FIELDS)
-    create_table(spark, config.GOLD_LAMBDA_CONTROL, GOLD_LAMBDA_CONTROL_FIELDS)
+    # Phân vùng theo NGÀY UTC: Batch View ghi lại từng ngày (overwrite theo khoảng) -> chạy lại không sinh trùng
+    create_table(spark, config.GOLD_TRAFFIC_5MIN, GOLD_TRAFFIC_5MIN_FIELDS, "days(window_start_utc)", drops=DERIVED_5MIN)
+    create_table(spark, config.GOLD_TRAFFIC_HOURLY, GOLD_TRAFFIC_HOURLY_FIELDS, "days(hour_start_utc)")
+    create_table(spark, config.GOLD_LAMBDA_CONTROL, GOLD_LAMBDA_CONTROL_FIELDS,
+                 renames={"t_batch_prev": "batch_state_prev", "t_batch": "batch_state"})
     for t in (config.GOLD_TRAFFIC_5MIN, config.GOLD_TRAFFIC_HOURLY):
         ensure_tag(spark, t, config.LAMBDA_PUBLISHED_TAG)
     spark.sql(f"SHOW TABLES IN {config.GOLD_NAMESPACE}").show(truncate=False)

@@ -388,3 +388,9 @@ foreach ($trafficMonth in 1..9) {
 ```
 
 Chỉ chạy lệnh load Gold ở trên sau khi toàn bộ bước Silver hoàn tất thành công. Không phát lại producer nếu Bronze đã có đủ dữ liệu cần xử lý.
+
+## 7. Monitoring (Prometheus + Grafana)
+
+- Tổng kết dễ hiểu: [docs/monitoring-tong-ket.md](docs/monitoring-tong-ket.md)
+- Hướng dẫn kỹ thuật chi tiết: [docs/monitoring.md](docs/monitoring.md)
+- Demo 1 lệnh: `bash scripts/monitoring_demo/run_demo.sh up` rồi mở http://localhost:3001

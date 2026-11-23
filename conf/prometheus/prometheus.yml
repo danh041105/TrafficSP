@@ -30,9 +30,10 @@ scrape_configs:
     static_configs:
       - targets: ["spark-worker-1:8081", "spark-worker-2:8081"]
 
-  # Driver Spark của các job batch
+  # Driver Spark của các job batch (driver chạy trong airflow-scheduler, chỉ mở cổng khi có job chạy)
+  # Driver redirect 302 /metrics/prometheus -> /metrics/prometheus/ nên phải có dấu "/" cuối
   - job_name: spark-driver
-    metrics_path: /metrics/prometheus
+    metrics_path: /metrics/prometheus/
     static_configs:
       - targets: ["airflow-scheduler:4040"]
 
@@ -40,13 +41,15 @@ scrape_configs:
     metrics_path: /metrics/executors/prometheus
     static_configs:
       - targets: ["airflow-scheduler:4040"]
-  # Driver Spark của các job stream
+
+  # Driver Spark của Speed Layer: chạy trong spark-master (jobs/stream/run_speed_layer.sh), Spark UI cố định cổng 4041
+  # (config.SPEED_UI_PORT) để không đụng cổng 4040 của job batch.
   - job_name: spark-speed-layer
-    metrics_path: /metrics/prometheus
+    metrics_path: /metrics/prometheus/
     static_configs:
-      - targets: ["airflow-scheduler:4041"]
+      - targets: ["spark-master:4041"]
 
   - job_name: spark-speed-layer-executors
     metrics_path: /metrics/executors/prometheus
     static_configs:
-      - targets: ["airflow-scheduler:4041"]
+      - targets: ["spark-master:4041"]
