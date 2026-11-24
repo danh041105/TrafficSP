@@ -77,7 +77,6 @@ function HandoffDetail({ h, lane }: { h: Handoff; lane: string }) {
       </p>
       <Loadable loading={loading && !data} error={error}>
         {option && <Chart option={option} height={190} label="Số đoạn theo cửa sổ: Speed trước và Batch sau handoff" />}
-        {data && <p className="muted" style={{ fontSize: 12 }}>{data.note}</p>}
       </Loadable>
       <table className="data compact-table">
         <tbody>
@@ -125,7 +124,6 @@ export function ReplayInspector({ replay, timeline }: { replay: Record<string, a
         <dt>Cập nhật trạng thái</dt><dd>{vnTime(replay.updated_at)} <span className="muted">giờ xử lý, VN</span></dd>
         <dt>Speed chậm hơn producer</dt><dd>{speedLag != null ? duration(speedLag) : "—"} <span className="muted">giờ sự kiện (cửa sổ Speed cuối)</span></dd>
         <dt>Batch chậm hơn producer</dt><dd>{batchLag != null ? duration(batchLag) : "—"} <span className="muted">giờ sự kiện (batch_state)</span></dd>
-        <dt>Điều khiển</dt><dd className="muted">Producer không hỗ trợ tạm dừng. Bắt đầu, dừng phiên bằng <code>scripts/demo_replay.py start|stop</code>.</dd>
       </dl>
     </div>
   );

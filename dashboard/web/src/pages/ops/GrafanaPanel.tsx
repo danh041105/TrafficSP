@@ -48,10 +48,6 @@ export function GrafanaPanel({ lane }: { lane: string }) {
             </span>
           </div>
           <iframe key={`${d.uid}-${from}-${lane}`} className="grafana-frame" src={src(true)} title={`Grafana: ${d.title}`} loading="lazy" />
-          <p className="caption">Bảng do Grafana vẽ từ Prometheus (kafka-exporter, Spark PrometheusServlet), tự làm mới mỗi 30 giây;
-            trục thời gian là giờ xử lý theo múi giờ trình duyệt. Không có ô lag của consumer group vì Spark tự quản offset trong checkpoint,
-            không báo về Kafka; số message chưa đọc xem ở biểu đồ "Offset Kafka chưa đọc" phía trên. Grafana mở xem ẩn danh, chỉ đọc;
-            muốn sửa dashboard thì mở trong Grafana và đăng nhập.</p>
         </>
       )}
     </Loadable>

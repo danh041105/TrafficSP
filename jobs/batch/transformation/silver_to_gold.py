@@ -18,7 +18,7 @@ from common.spark_session import build_spark
 
 TIMEZONE = "America/New_York"
 BAND_COLUMNS = ["precip_band", "snow_band", "wind_band", "temp_band", "weather_group"]
-ROAD_COLUMNS = ["link_id", "transcom_id", "link_name", "borough", "owner", "geometry_wkt",
+ROAD_COLUMNS = ["link_id", "transcom_id", "link_name", "borough", "geometry_wkt",
                 "length_m", "free_flow_speed_mph", "nearest_grid_key"]
 STEPS = ["dimensions", "traffic", "weather", "congestion", "validate"]
 HOUR_FMT = "%Y-%m-%dT%H"   # 2025-10-05T13 = giờ 13 ngày 05/10 theo giờ New York
@@ -137,7 +137,6 @@ def road_metrics_sql(traffic: str, links: str, weather: str, start: date, end: d
         SELECT link_id,min(transcom_id) AS transcom_id FROM retained GROUP BY link_id
       )
       SELECT CAST(l.link_id AS STRING) AS link_id, x.transcom_id, l.link_name, l.borough,
-        CAST(NULL AS STRING) AS owner,
         concat('LINESTRING(',concat_ws(', ',transform(split(trim(l.link_points),' +'),
           p -> concat(split(p,',')[1],' ',split(p,',')[0]))),')') AS geometry_wkt,
         m.length_m, f.free_flow_speed_mph, l.cell_id AS nearest_grid_key
@@ -272,7 +271,7 @@ class GoldLoader:
                WHEN id<20 THEN 'evening' ELSE 'late_evening' END AS time_band FROM range(24)""",
                    ["hour_key"], update=False)
         self.merge("dim_weather_grid", f"""SELECT cell_id AS grid_key,min(latitude) AS latitude,
-          min(longitude) AS longitude,CAST(NULL AS DOUBLE) AS elevation_m
+          min(longitude) AS longitude
           FROM {self.silver}.weather_cleaned GROUP BY cell_id""", ["grid_key"])
         self._load_conditions()
         self._load_roads()

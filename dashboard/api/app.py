@@ -719,4 +719,5 @@ if (WEB_DIR / "assets").is_dir():
         f = WEB_DIR / path
         if path and f.is_file():
             return FileResponse(f)
-        return FileResponse(WEB_DIR / "index.html")
+        # index.html trỏ tới bundle có hash: không cache để bản build mới hiện ngay, không cần xoá cache trình duyệt
+        return FileResponse(WEB_DIR / "index.html", headers={"Cache-Control": "no-cache"})

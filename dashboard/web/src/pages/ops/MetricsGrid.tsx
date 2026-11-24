@@ -99,7 +99,6 @@ export function MetricsGrid({ m }: { m: Metrics }) {
         <label>Query Spark{" "}
           <select value={q} onChange={(e) => setQ(e.target.value)}>{queries.map((x) => <option key={x}>{x}</option>)}</select>
         </label>
-        <span className="muted">Trục ngang là giờ xử lý (giờ Việt Nam).</span>
       </div>
       <div className="metric-grid">
         <Tile title="Kafka message/giây" scope={`Prometheus, kafka-exporter, topic ${k?.topic ?? ""}`}
@@ -109,14 +108,14 @@ export function MetricsGrid({ m }: { m: Metrics }) {
           <Chart option={opts.rows} height={170} label="Dòng vào và xử lý mỗi giây" /></Tile>
         <Tile title="Thời lượng micro-batch" scope={`triggerExecution, ${q}`} empty={!sp.length && "Query chưa có micro-batch nào."}>
           <Chart option={opts.batch} height={170} label="Thời lượng micro-batch" /></Tile>
-        <Tile title="Offset Kafka chưa đọc" scope="max_offsets_behind do query báo (thay cho consumer lag)" empty={!sp.length && "Query chưa có micro-batch nào."}>
+        <Tile title="Offset Kafka chưa đọc" scope="max_offsets_behind" empty={!sp.length && "Query chưa có micro-batch nào."}>
           <Chart option={opts.behind} height={170} label="Offset Kafka chưa đọc" /></Tile>
-        <Tile title="Độ trễ Kafka tới Iceberg" scope="speed_latest: p50, p95 từ thời điểm vào Kafka tới lúc MERGE xong"
+        <Tile title="Độ trễ Kafka tới Iceberg" scope="speed_latest, p50 / p95"
           empty={!m.latency.length && "Chưa có lô nào ghi phân vị thời điểm Kafka."}>
           <Chart option={opts.lat} height={170} label="Độ trễ xử lý p50 và p95" /></Tile>
-        <Tile title="Ghi lô vào Iceberg" scope={`addBatch, gồm commit Iceberg, ${q}`} empty={!sp.some((p) => p.add_batch_ms != null) && "Query không báo addBatch."}>
+        <Tile title="Ghi lô vào Iceberg" scope={`addBatch, ${q}`} empty={!sp.some((p) => p.add_batch_ms != null) && "Query không báo addBatch."}>
           <Chart option={opts.addb} height={170} label="Thời gian ghi lô vào Iceberg" /></Tile>
-        <Tile title="Độ trễ truy vấn Trino" scope="đo trong backend dashboard từ lúc container khởi động" empty={!m.trino.length && "Backend chưa gửi truy vấn nào."}>
+        <Tile title="Độ trễ truy vấn Trino" scope="backend dashboard" empty={!m.trino.length && "Backend chưa gửi truy vấn nào."}>
           <Chart option={opts.trino} height={170} label="Độ trễ truy vấn Trino" /></Tile>
         <Tile title="Thời lượng lượt DAG batch" scope={dag ? `Airflow, ${dag.dag_id}` : "không có làn batch"}
           empty={!dag ? "Làn này không có DAG batch." : !dag.runs.some((r) => r.duration_s != null) && "Chưa có lượt nào kết thúc."}>
@@ -126,9 +125,6 @@ export function MetricsGrid({ m }: { m: Metrics }) {
           <Chart option={opts.inf} height={170} label="Thời lượng các lượt suy luận" />
           <div className="mini-legend"><span><i style={{ background: "#0ca30c" }} />Thành công</span><span><i style={{ background: "#d03b3b" }} />Lỗi</span><span><i style={{ background: "#b6bbc0" }} />Bỏ qua</span></div></Tile>
       </div>
-      <ul className="not-available">
-        {Object.entries(m.not_available).map(([k2, v]) => <li key={k2}>{v}</li>)}
-      </ul>
     </>
   );
 }

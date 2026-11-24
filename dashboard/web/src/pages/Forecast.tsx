@@ -57,8 +57,6 @@ export default function Forecast() {
       <div className="page-head">
         <div>
           <h1>Dự báo tốc độ sau 15 phút</h1>
-          <p>Mỗi lượt dự báo dùng dữ liệu tới mốc cắt của gốc dự báo và cho tốc độ trung bình của cửa sổ 5 phút kết thúc sau gốc 15 phút.
-            Trạng thái dự báo suy ra từ tốc độ dự báo, theo cùng ngưỡng 0,5 và 0,8 lần tốc độ thông thoáng.</p>
         </div>
         <div className="controls">
           <label>Quận{" "}
@@ -101,11 +99,7 @@ export default function Forecast() {
 
             <div className="grid-2">
               <Section title="Dự báo mới nhất theo đoạn" note={`${rows.length} đoạn`} flush>
-                {data.data_stopped && <p className="table-note"><b>Nguồn dữ liệu đã ngừng</b> (phiên phát lại đã xong, hoặc không có bản ghi mới
-                  hơn 30 phút). Số thực tế chỉ có tới {nyTime(data.clock.actual_available_utc)} giờ New York; dự báo nhắm sau mốc đó mang nhãn
-                  "Sau cuối dữ liệu" vì sẽ không bao giờ có số để đối chiếu.</p>}
-                <p className="table-note">Dự báo mới nhất nhắm vào 15 phút tới nên chưa có số thực tế. Cột <b>Đối chiếu gần nhất</b> lấy dự báo
-                  gần nhất của đoạn đã tới giờ đích: dự báo → thực tế (mph), sai số của mô hình và của persistence trong ngoặc. Rê chuột để xem gốc và giờ đích.</p>
+                {data.data_stopped && <p className="table-note"><b>Nguồn dữ liệu đã ngừng</b>: số thực tế chỉ có tới {nyTime(data.clock.actual_available_utc)} giờ New York.</p>}
                 <div className="scroll">
                   <table className="data">
                     <thead><tr><th>Đoạn đường</th><th className="num">Hiện tại</th><th className="num">Sau 15 phút</th><th>Trạng thái dự báo</th>

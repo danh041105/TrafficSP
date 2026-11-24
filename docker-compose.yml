@@ -391,7 +391,7 @@ services:
     networks:
       - traffic-net
 
-  # Prometheus: chỉ thu thập metrics Kafka và Spark, Grafana đọc qua datasource "Prometheus"
+  # Prometheus: metrics Kafka, Spark, tài nguyên container (cAdvisor) và máy (node-exporter); Grafana đọc qua datasource "Prometheus"
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: traffic-prometheus
@@ -401,6 +401,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --web.enable-lifecycle      # cho phép nạp lại config: curl -X POST localhost:9090/-/reload
+      - --storage.tsdb.retention.size=1GB   # trần dung lượng: đầy thì xoá block cũ nhất trước hạn 15 ngày
     ports:
       - "9090:9090"
     volumes:
@@ -409,6 +410,48 @@ services:
       - prometheus_data:/prometheus
     depends_on:
       - kafka-exporter
+      - cadvisor
+      - node-exporter
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # cAdvisor: CPU / RAM / mạng / IO của từng container -> Prometheus (dashboard Grafana "Tài nguyên hệ thống")
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6     # >= v0.53 mới đọc được Docker 29 dùng containerd-snapshotter
+    container_name: traffic-cadvisor
+    hostname: cadvisor
+    command:
+      - --docker_only=true                 # chỉ container Docker, bỏ cgroup hệ thống của VM
+      - --housekeeping_interval=15s        # khớp scrape_interval, đỡ tốn CPU
+      - --store_container_labels=false     # không đẩy toàn bộ label compose thành label Prometheus
+      - --disable_metrics=percpu,sched,tcp,udp,disk,hugetlb,referenced_memory,cpu_topology,resctrl,cpuset,advtcp,memory_numa,process
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    mem_limit: 200m
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # node-exporter: CPU / RAM / swap / đĩa của máy chạy Docker (VM WSL2 của Docker Desktop, tức tiến trình vmmem)
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: traffic-node-exporter
+    hostname: node-exporter
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|host/(dev|proc|sys|run))($$|/)
+    pid: host
+    volumes:
+      - /:/host:ro
+    mem_limit: 64m
     restart: unless-stopped
     networks:
       - traffic-net

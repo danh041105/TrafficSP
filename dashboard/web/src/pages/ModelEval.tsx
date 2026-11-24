@@ -101,8 +101,6 @@ export default function ModelEval() {
       <div className="page-head">
         <div>
           <h1>Đánh giá mô hình dự báo</h1>
-          <p>Số liệu của mô hình đang phục vụ, đọc từ artifact của lần huấn luyện (reports/ml/{data?.version ?? "…"}/metrics.json),
-            không tính lại trên dashboard. Tập kiểm tra cuối là tháng 10 đến 12 năm 2025; walk-forward gồm các fold mở rộng từ tháng 5 tới tháng 9.</p>
         </div>
       </div>
       <Loadable loading={loading && !data} error={error}>
@@ -162,7 +160,6 @@ export default function ModelEval() {
                     <tr><td>Không có mã đoạn đường</td><td className="num">{num(sp("no_link_id__seen_links")?.mae, 3)}</td><td className="num">{num(sp("no_link_id__holdout_links")?.mae, 3)}</td></tr>
                   </tbody>
                 </table>
-                <p className="muted" style={{ fontSize: 12, padding: "0 16px" }}>Đơn vị: MAE (mph).</p>
               </Section>
               <Section title="Thời tiết và trọng số lớp" note="fold tháng 9, MAE (mph)" flush>
                 <table className="data">

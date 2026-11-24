@@ -46,8 +46,6 @@ export default function Ops() {
       <div className="page-head">
         <div>
           <h1>Trung tâm vận hành</h1>
-          <p>Theo dõi hai lớp của kiến trúc Lambda trên cùng trục giờ sự kiện: Batch công bố tới mốc <b>batch_state</b>, Speed phục vụ phần sau mốc đó.
-            Mọi trạng thái lấy từ bảng điều khiển handoff, view phục vụ và log tiến độ thật; tự làm mới mỗi 15 giây.</p>
         </div>
         <span className="muted">{t ? (lane === "demo" ? `Phiên ${t.run_id}` : "Hệ thống chính") : ""}</span>
       </div>
@@ -81,20 +79,15 @@ export default function Ops() {
         </header>
         <Loadable loading={tl.loading && !t} error={tl.error} empty={t?.empty ?? false}>
           {t && (asTable ? <WindowTable t={t} /> : <WindowTimeline data={t} />)}
-          {t && <p className="caption">Trục ngang là giờ sự kiện (New York); độ đậm của ô theo số đoạn có cửa sổ, tối đa 124.
-            {t.speed_watermark_utc ? ` Watermark Speed: ${nyTime(t.speed_watermark_utc)}.` : ""}
-            {!t.batch_lane && lane === "demo" ? " Phiên này không có Batch riêng nên batch_state đứng ở mốc bắt đầu." : ""}</p>}
         </Loadable>
         <h3 className="sub-h">batch_state và tiến độ Speed theo giờ xử lý</h3>
         <Loadable loading={tl.loading && !t} error={tl.error} empty={t?.empty ?? false}>
           {t && <BatchStairs data={t} />}
-          <p className="caption">Trục ngang là lúc hệ thống xử lý (giờ Việt Nam); trục dọc là mốc giờ sự kiện đã tới. Mỗi bậc xanh là một lần handoff công bố
-            batch_state mới; đường cam là watermark của Speed Layer. Khoảng giữa hai đường là phần Speed đang phục vụ.</p>
         </Loadable>
       </section>
 
       <section className="ops-block">
-        <header><h2>Sơ đồ pipeline</h2><span className="note">bấm một khối để xem số đo và bản ghi gần nhất</span></header>
+        <header><h2>Sơ đồ pipeline</h2></header>
         <Loadable loading={fl.loading && !fl.data} error={fl.error}>
           {fl.data && <div className="flow-wrap"><FlowDiagram flow={fl.data} selected={node} onSelect={(k) => setNode(node === k ? null : k)} /></div>}
           <div className="ops-legend" style={{ marginTop: 6 }}>
@@ -105,30 +98,30 @@ export default function Ops() {
       </section>
 
       <section className="ops-block">
-        <header><h2>Thông lượng và độ trễ</h2><span className="note">chỉ vẽ số đo có thật; số đo không có được ghi rõ lý do</span></header>
+        <header><h2>Thông lượng và độ trễ</h2></header>
         <Loadable loading={mx.loading && !mx.data} error={mx.error}>{mx.data && <MetricsGrid m={mx.data} />}</Loadable>
       </section>
 
       <section className="ops-block">
-        <header><h2>Grafana: Kafka và Spark</h2><span className="note">dashboard Grafana nhúng, dữ liệu Prometheus</span></header>
+        <header><h2>Grafana: tài nguyên, Kafka, Spark</h2></header>
         <GrafanaPanel lane={lane} />
       </section>
 
       <section className="ops-block">
-        <header><h2>Kiểm tra handoff</h2><span className="note">{ho.data?.control_table ? `${ho.data.control_table}; chọn một dòng để xem trước và sau` : ""}</span></header>
+        <header><h2>Kiểm tra handoff</h2><span className="note">{ho.data?.control_table ? ho.data.control_table : ""}</span></header>
         <Loadable loading={ho.loading && !ho.data} error={ho.error}>
           {ho.data && <HandoffInspector data={ho.data} lane={lane} selected={handoff} onSelect={setHandoff} />}
         </Loadable>
       </section>
 
       <section className="ops-block">
-        <header><h2>Phiên phát lại</h2><span className="note">trạng thái do scripts/demo_replay.py ghi</span></header>
+        <header><h2>Phiên phát lại</h2></header>
         {lane === "main" ? <div className="empty">Hệ thống chính đã nhận hết dữ liệu năm 2025. Chọn "Phiên phát lại kiểm chứng" ở thanh bên để xem phiên phát lại.</div>
           : <ReplayInspector replay={replay} timeline={t ? { last_speed_window_utc: t.last_speed_window_utc, batch_state: t.batch_state } : null} />}
       </section>
 
       <section className="ops-block">
-        <header><h2>Chi tiết thành phần</h2><span className="note">Airflow, Spark, Prometheus</span></header>
+        <header><h2>Chi tiết thành phần</h2></header>
         <Loadable loading={legacy.loading && !legacy.data} error={legacy.error}>{legacy.data && <Components d={legacy.data} />}</Loadable>
       </section>
     </>

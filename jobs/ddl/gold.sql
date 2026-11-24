@@ -36,8 +36,7 @@ TBLPROPERTIES ('format-version' = '2', 'write.format.default' = 'parquet');
 CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_weather_grid (
     grid_key STRING NOT NULL COMMENT 'Logical PK, exactly silver.weather_cleaned.cell_id',
     latitude DOUBLE,
-    longitude DOUBLE,
-    elevation_m DOUBLE
+    longitude DOUBLE
 )
 USING ICEBERG
 COMMENT 'SCD 1 weather grid. Update attributes in place while retaining grid_key'
@@ -61,7 +60,6 @@ CREATE TABLE IF NOT EXISTS lakehouse.gold.dim_road_link (
     transcom_id STRING,
     link_name STRING,
     borough STRING,
-    owner STRING,
     geometry_wkt STRING COMMENT 'WKT geometry with longitude latitude coordinate order',
     length_m DOUBLE COMMENT 'Empirical length: exact median of positive speed_mph times 0.44704 times travel_time_sec per link',
     free_flow_speed_mph DOUBLE COMMENT 'Exact P85 positive speed during NYC night with zero mapped precipitation and snowfall in the fixed baseline period',

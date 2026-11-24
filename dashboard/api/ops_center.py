@@ -423,10 +423,12 @@ def grafana(lane: str = "main"):
     except Exception as e:  # noqa: BLE001 - lý do trả nguyên cho giao diện
         reason = "Grafana chưa bật xem ẩn danh" if "401" in str(e) else f"không kết nối được Grafana ({e})"
         return {**base, "available": False, "reason": reason, "dashboards": []}
-    scope = {"traffic-kafka": f"lọc theo topic của làn: {topic}", "traffic-spark": "toàn cụm Spark, không tách theo làn"}
+    scope = {"traffic-kafka": f"lọc theo topic của làn: {topic}", "traffic-spark": "toàn cụm Spark, không tách theo làn",
+             "traffic-system": "CPU, RAM của máy chạy Docker và từng container"}
     dashboards = [{"uid": d["uid"], "title": d["title"], "path": d["url"],
                    "vars": {"topic": topic} if d["uid"] == "traffic-kafka" else {},
                    "scope": scope.get(d["uid"], "")} for d in found]
-    dashboards.sort(key=lambda d: (d["uid"] != "traffic-kafka", d["title"]))
+    order = ["traffic-system", "traffic-kafka", "traffic-spark"]
+    dashboards.sort(key=lambda d: (order.index(d["uid"]) if d["uid"] in order else len(order), d["title"]))
     return {**base, "available": bool(dashboards), "reason": None if dashboards else "Grafana chưa có dashboard nào",
             "dashboards": dashboards}

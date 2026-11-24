@@ -104,8 +104,6 @@ export default function MapPage() {
       <div className="page-head">
         <div>
           <h1>Bản đồ đoạn đường</h1>
-          <p>Mỗi nét là hình học thật của đoạn đường trong danh mục link của NYC DOT. Nét liền có màu theo trạng thái,
-            nét đứt xám là đoạn không có số liệu hợp lệ.</p>
         </div>
         <div className="controls">
           <label>Quận{" "}
@@ -185,7 +183,6 @@ function LinkDetail({ id, onClose }: { id: number; onClose: () => void }) {
               <h3 style={{ fontSize: 14, margin: "18px 0 4px" }}>Tốc độ 24 giờ trước giờ sự kiện</h3>
               {option ? <Chart option={option} height={230} label={`Tốc độ 5 phút của ${p.link_name} trong 24 giờ`} />
                 : <div className="empty">Không có cửa sổ 5 phút nào trong 24 giờ trước giờ sự kiện.</div>}
-              <p className="muted" style={{ fontSize: 12 }}>Khoảng trống là cửa sổ không có bản ghi hợp lệ. Giờ theo New York.</p>
             </>
           )}
         </Loadable>

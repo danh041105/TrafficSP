@@ -64,8 +64,6 @@ export default function Overview() {
       <div className="page-head">
         <div>
           <h1>Tổng quan mạng lưới</h1>
-          <p>Trạng thái mỗi đoạn đường lấy từ bản ghi hợp lệ gần nhất, so với tốc độ thông thoáng của chính đoạn đó.
-            Đoạn có bản ghi cũ hơn {data?.stale_after_min ?? 15} phút so với giờ sự kiện được tách riêng, không tính vào trạng thái.</p>
         </div>
       </div>
 
@@ -105,7 +103,7 @@ export default function Overview() {
                   ? <Chart option={trendOption} height={280} label="Số đoạn đường theo trạng thái qua các cửa sổ 5 phút" />
                   : <div className="empty">Không có cửa sổ 5 phút hợp lệ trong {data.trend_hours} giờ trước giờ sự kiện.</div>}
               </Section>
-              <Section title="Đoạn chậm nhất so với thông thoáng" note="bấm để mở trên bản đồ" flush>
+              <Section title="Đoạn chậm nhất so với thông thoáng" flush>
                 <Loadable loading={links.loading && !links.data} error={links.error}
                   empty={links.data && !worst.length ? "Không có đoạn nào chậm hoặc tắc." : false}>
                   <table className="data">

@@ -74,14 +74,15 @@ export function RoadBackdrop() {
     <figure className="roadnet" aria-hidden="true">
       <svg viewBox={`-40 -10 ${(W + 80).toFixed(0)} ${(H + 20).toFixed(0)}`} preserveAspectRatio="xMaxYMax meet">
         {g.labels.map((l) => <text key={l.b} x={l.xy[0]} y={l.xy[1]} className="roadnet-label" textAnchor="middle">{l.b}</text>)}
-        <path d={g.d} fill="none" stroke="var(--road-ink)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+        <path d={g.d} fill="none" stroke="var(--road-casing)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke" />
+        <path d={g.d} fill="none" stroke="var(--road-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
           vectorEffect="non-scaling-stroke" />
         {g.ends.map((e, i) => {
           const [x, y] = e.split(",");
           return <circle key={i} cx={x} cy={y} r="2.2" fill="var(--page)" stroke="var(--road-ink)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />;
         })}
       </svg>
-      <figcaption>Nền: {g.n} đoạn đường có cảm biến NYC DOT, vẽ từ toạ độ thật trong dim_road_link</figcaption>
     </figure>
   );
 }
