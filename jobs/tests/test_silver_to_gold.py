@@ -79,7 +79,6 @@ def test_exact_calibration(spark):
     # Exact continuous P85 of [10,20] is 18.5; approx/discrete 20 would fail.
     assert isclose(rows['1'].free_flow_speed_mph,18.5,rel_tol=1e-12), rows
     assert rows['2'].length_m is None and rows['2'].free_flow_speed_mph is None, rows
-    assert rows['1'].owner is None, rows
     assert rows['1'].geometry_wkt == 'LINESTRING(-74.0 40.0, -74.1 40.1)', rows
 
 

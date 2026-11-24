@@ -116,66 +116,90 @@ SILVER_INGEST_AUDIT_FIELDS = {
     "n_silver_rows": "bigint",     # số dòng ghi vào Silver
     "processed_ts": "timestamp",   
 }
-# Producer: dùng field_names() để chọn cột gửi đi.
-# Spark:    dùng to_ddl() làm schema cho from_json.
-
-# Bản ghi traffic do giờ DST lặp/không tồn tại, thiếu khóa
+# Bản ghi traffic KHÔNG đưa vào traffic_cleaned (giờ DST mơ hồ/không tồn tại, thiếu khóa) - giữ lại để truy vết,
+# không xóa âm thầm. Dùng chung chính sách với Speed Layer (common/time_rules.py).
 SILVER_TRAFFIC_QUARANTINE_FIELDS = {
     "link_id": "bigint",
-    "date": "date",                # ngày theo giờ New York
+    "date": "date",                   # ngày theo giờ New York
     "hour": "int",
     "speed": "double",
     "travel_time": "bigint",
-    "reason": "string",            # dst_duplicated / dst_nonexistent / missing_key
+    "reason": "string",               # dst_duplicated / dst_nonexistent / missing_key (data_cleaning.dst_reason)
     "run_id": "string",
     "kafka_partition": "int",
     "kafka_offset": "bigint",
     "processed_ts": "timestamp",
 }
 
-# ----------------- STREAMING(SPEED_LAYER) ----------------------
-SPEED_TRAFFIC_5MIN_FIELDS = {
-    "link_id": "bigint",
-    "window_start_utc": "timestamp",
-    "n_records": "bigint",             # Tổng số bản ghi trong 1 cửa sổ
-    "n_valid": "bigint",               # Tổng số bản ghi hợp lệ trong 1 cửa sổ
-    "sum_speed": "double",             # Tổng speed của các bản ghi hợp lệ
-    "sum_travel_time": "bigint",       # Tổng travel_time của các bản ghi hợp lệ
-    "sum_speed_sq": "double",          # Tổng bình phương speed, dùng để tính độ lệch chuẩn
-    "min_speed": "double",             # Speed nhỏ nhất trong các bản ghi hợp lệ của cửa sổ 5p
-    "max_speed": "double",             # Speed lớn nhất trong các bản ghi hợp lệ của cửa sổ 5p
-    "processed_at": "timestamp"        # Thời điểm ghi dòng dữ liệu này.
+# ----------------- Gold (Batch View của Lambda, theo quy ước gold-dev) ----------------------
+# gold.fact_traffic_5min: grain (link_id, window_start_utc); gold.fact_traffic_hourly: grain (link_id, hour_start_utc).
+# Đặt tên theo jobs/ddl/gold.sql: đơn vị trong tên cột (_mph, _sec), thời điểm *_utc, khoá lịch date_key (YYYYMMDD)
+# và hour_key (0-23) theo giờ New York -> join được với dim_date / dim_hour. link_id = khoá nghiệp vụ của Silver
+# (dim_road_link.link_id là STRING: join bằng CAST). road_link_key = khoá thay thế SCD2 của dim_road_link (như các fact
+# của gold-dev), tra as-of theo ngày New York (common/road_link.py). Chỉ lưu thành phần CỘNG ĐƯỢC; cột suy ra do view tính:
+# avg_speed_mph = sum_speed_mph / n_valid, n_invalid_other = n_records - n_valid - n_zero,
+# window_end_utc = window_start_utc + 5', quality_flag = NO_VALID_DATA khi n_valid = 0.
+CALENDAR_KEY_FIELDS = {
+    "date_key": "int",               # YYYYMMDD của ngày New York (FK logic tới dim_date.date_key)
+    "hour_key": "int",               # giờ New York 0-23 (FK logic tới dim_hour.hour_key)
+}
+GOLD_AGG_MEASURES = {
+    "n_records": "int",              # tổng bản ghi trong khung
+    "n_valid": "int",                # bản hợp lệ (0 < speed <= 100, travel_time > 0)
+    "n_zero": "int",                 # bản speed = 0 (không có số đo)
+    "sum_speed_mph": "double",       # tổng speed các bản hợp lệ  -> avg = sum_speed_mph / n_valid
+    "sum_speed_sq": "double",        # tổng bình phương speed hợp lệ (mph^2) -> độ lệch chuẩn
+    "sum_travel_time_sec": "bigint", # tổng travel_time các bản hợp lệ (giây)
+}
+GOLD_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "road_link_key": "int", "window_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                            **GOLD_AGG_MEASURES, "batch_run_id": "string", "processed_at": "timestamp"}
+GOLD_TRAFFIC_HOURLY_FIELDS = {"link_id": "bigint", "road_link_key": "int", "hour_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                              **GOLD_AGG_MEASURES, "n_windows": "int",
+                              "batch_run_id": "string", "processed_at": "timestamp"}
+
+# Nhật ký trạng thái Lambda handoff (append-only: mỗi lần chuyển trạng thái = 1 dòng; không UPDATE/DELETE).
+# batch_state hiện hành = batch_state của dòng PUBLISHED mới nhất. status: PREPARING | VALIDATED | PUBLISHED | FAILED.
+GOLD_LAMBDA_CONTROL_FIELDS = {
+    "handoff_id": "string",
+    "status": "string",
+    "batch_state_prev": "timestamp",
+    "batch_state": "timestamp",           # mốc mới (UTC, bội 5 phút); batch cho window_start_utc < batch_state
+    "batch_run_id": "string",
+    "snapshot_5min": "bigint",            # snapshot gold.fact_traffic_5min đã kiểm chứng (tag published trỏ vào đây)
+    "snapshot_hourly": "bigint",
+    "checks": "string",                   # JSON kết quả kiểm tra
+    "message": "string",
+    "created_at": "timestamp",
 }
 
+# ----------------- Speed (chỉ Speed Layer ghi) ----------------------
+# Cùng cột (tên, kiểu, khoá lịch) với gold.fact_traffic_5min -> view ghép 2 bảng bằng UNION ALL.
+SPEED_TRAFFIC_5MIN_FIELDS = {"link_id": "bigint", "road_link_key": "int", "window_start_utc": "timestamp", **CALENDAR_KEY_FIELDS,
+                             **GOLD_AGG_MEASURES, "processed_at": "timestamp"}    # lúc Speed Layer ghi dòng này
+# 1 dòng / link. Bản HỢP LỆ mới nhất (tốc độ hiện tại) + quan trắc mới nhất bất kể hợp lệ (cảm biến còn gửi không),
+# để phân biệt cảm biến im lặng (STALE) với cảm biến vẫn gửi nhưng giá trị không hợp lệ (NO_VALID_DATA).
 SPEED_TRAFFIC_LATEST_FIELDS = {
     "link_id": "bigint",
-    "event_time": "timestamp",         # Thời điểm của bản ghi hợp lệ mới nhất
-    "speed": "double",                 # Tốc độ của bản ghi hợp lệ mới nhất
-    "travel_time": "bigint",           # Thời gian di chuyển của bản ghi hợp lệ mới nhất
-    "kafka_offset": "bigint",          # Dùng khi hai bản ghi trùng event_time: offset lớn hơn là bản mới hơn.
-    "kafka_partition": "int",
-    "kafka_ts": "timestamp",
-    "last_seen_time": "timestamp",       # Lần cuối nhận được bản ghi, hợp lệ hay không đều tính
-    "last_seen_valid": "boolean",      # Bản ghi nhận cuối cùng có hợp lệ hay không
-    "invalid_reason": "string",        # Nếu không hợp lệ thì lưu lý do (ví dụ: speed_zero) để hiển thị trên dashboard
-    "updated_at": "timestamp"          # Thời điểm cập nhật dòng dữ liệu này
+    "reading_ts_utc": "timestamp",    # thời điểm (UTC) của bản hợp lệ mới nhất (tên như fact_traffic_reading)
+    "speed_mph": "double",            # của bản hợp lệ đó
+    "travel_time_sec": "bigint",      # của bản hợp lệ đó
+    "kafka_offset": "bigint",         # phân xử 2 bản trùng reading_ts_utc (offset lớn hơn = mới hơn)
+    "last_seen_ts_utc": "timestamp",  # lần cuối nhận bản ghi, hợp lệ hay không
+    "last_seen_valid": "boolean",     # bản nhận cuối có hợp lệ không
+    "invalid_reason": "string",       # lý do không hợp lệ của bản nhận cuối (NULL nếu hợp lệ)
+    "updated_at": "timestamp",
+}
+# Không lưu latitude/longitude: tọa độ ô thời tiết cố định, nằm ở silver.weather_cleaned (join theo cell_id).
+SPEED_WEATHER_OBS_FIELDS = {
+    "cell_id": "string", "time_utc": "timestamp",
+    "temperature_2m": "double", "relative_humidity_2m": "int", "precipitation": "double", "snowfall": "double",
+    "wind_speed_10m": "double", "wind_gusts_10m": "double", "weather_code": "int",
+    "kafka_offset": "bigint",         # bản tin trùng (cell_id, time_utc): offset lớn hơn = bản mới hơn
 }
 
-SPEED_WEATHER_OBS_FIELDS = {
-    "cell_id": "string", 
-    "time_utc": "timestamp",
-    "temperature_2m": "double", 
-    "relative_humidity_2m": "int", 
-    "precipitation": "double", 
-    "snowfall": "double",
-    "wind_speed_10m": "double", 
-    "wind_gusts_10m": "double", 
-    "weather_code": "int",
-    "kafka_offset": "bigint",
-    "kafka_partition": "int",
-    "kafka_ts": "timestamp",
-    "processed_at": "timestamp",
-}
+# Producer: dùng field_names() để chọn cột gửi đi.
+# Spark:    dùng to_ddl() làm schema cho from_json.
+
 
 def field_names(fields: dict) -> list[str]:
     return list(fields)
@@ -189,9 +213,9 @@ def to_ddl(fields: dict) -> str:
     ddl = ", ".join(columns)
     return ddl
 
-# Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver
+# Chọn đúng cột, đúng thứ tự và đúng kiểu theo schema Silver.
+# Import pyspark bên trong hàm: producer (container không có pyspark) cũng import file này để lấy field_names().
 def conform(df, fields: dict):
-    # Producer imports field definitions without requiring the Spark runtime.
     from pyspark.sql import functions as F
     return df.select([F.col(c).cast(t).alias(c) for c, t in fields.items()])
 

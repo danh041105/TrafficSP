@@ -1,0 +1,85 @@
+# Cấu hình tập trung cho pipeline ML dự báo tốc độ 15 phút (TrafficSP).
+# Chỉ dùng tập con YAML: dict lồng nhau theo thụt lề 2 dấu cách, giá trị vô hướng, list inline [a, b].
+# (container Spark không có PyYAML -> jobs/ml/mlconfig.py có bộ đọc dự phòng; test so khớp với yaml.safe_load)
+
+version: v2                    # v2 (2026-11-20): loại status -101, free-flow theo gold-dev, tên cột _mph và _sec
+seed: 42
+
+problem:
+  window_minutes: 5            # grain dữ liệu: cửa sổ [s, s+5') theo epoch UTC
+  horizon_minutes: 15          # dự báo cho cửa sổ KẾT THÚC sau gốc dự báo 15 phút: [t+10', t+15')
+  availability_lag_minutes: 10 # cửa sổ [s, s+5') chỉ dùng được từ s+5'+10' (watermark 10' của Speed Layer)
+  sensitivity_lags: [0, 5]     # thí nghiệm độ nhạy (chỉ thay đổi target offset, feature giữ nguyên)
+  weather_lag_minutes: 60      # bản ghi thời tiết mốc T dùng được từ T+60' (giả định bảo thủ, không có giờ công bố thật)
+  weather_sensitivity_lags: [0, 180]
+
+data:
+  year: 2025
+  source: silver               # nguồn lịch sử: silver (silver.traffic_cleaned / weather_cleaned) | raw (file thô, dự phòng)
+  raw_traffic_glob: /opt/data/raw/nyc_dot/2025-*.parquet
+  raw_weather_dir: /opt/data/raw/open_meteo/ecmwf_ifs
+  namespace: lakehouse.ml
+  hist_5min_table: lakehouse.ml.traffic_5min_hist
+  weather_hist_table: lakehouse.ml.weather_hourly_hist
+  baseline_table: lakehouse.ml.link_baseline_asof_v2   # free-flow v2 (gold-dev); bảng v1 link_baseline_asof giữ nguyên cho model v1
+  features_table: lakehouse.ml.features_15m
+  forecast_table: lakehouse.ml.traffic_forecast_15m
+  export_dir: /opt/lakehouse/ml_export
+
+baseline:                    # cùng công thức free-flow của gold.dim_road_link (silver_to_gold.py, gold-dev)
+  percentile: 0.85             # P85 chính xác của speed dương
+  local_hours: [0, 1, 2, 3, 4, 5]
+  min_samples: 1               # gold-dev không đặt ngưỡng số mẫu
+  max_precip_mm: 0             # mưa = 0 và tuyết = 0, thời tiết tại mốc đầu giờ
+  history_start: "2025-01-01"
+  as_of_dates: ["2025-05-01", "2025-06-01", "2025-07-01", "2025-08-01", "2025-09-01", "2025-10-01"]
+
+split:
+  dev_start: "2025-01-01"
+  dev_end: "2025-10-01"        # dev = [dev_start, dev_end)
+  test_start: "2025-10-01"
+  test_end: "2026-01-01"       # final test = [test_start, test_end): KHÔNG dùng để chọn gì
+  val_months: ["2025-05-01", "2025-06-01", "2025-07-01", "2025-08-01", "2025-09-01"]
+  tuning_folds: 2              # tuning chỉ trên 2 fold dev cuối
+  sliding_train_days: 90       # thí nghiệm sliding-window
+
+lightgbm:
+  objective: regression_l1
+  n_estimators: 3000
+  early_stopping_rounds: 100
+  learning_rate: 0.05
+  num_leaves: 63
+  min_child_samples: 200
+  feature_fraction: 0.8
+  bagging_fraction: 0.8
+  bagging_freq: 1
+  lambda_l2: 1.0
+  max_bin: 255
+  num_threads: 20
+  tuning_train_stride: 3       # tuning: chỉ lấy 1/3 gốc dự báo của tập train (phút % 15 == 0) để nhanh
+  grid:
+    num_leaves: [31, 63, 127]
+    min_child_samples: [100, 500]
+    learning_rate: [0.05]
+
+state:
+  congested_lt: 0.5
+  slow_lt: 0.8
+
+# Suy luận tự động (DAG trafficsp_ml_inference -> jobs/ml/inference_task.py)
+inference:
+  models_dir: /opt/airflow/models/ml   # models/ml trong repo, mount chỉ đọc; current.json chọn phiên bản đang phục vụ
+  max_origins_per_run: 12              # bù tối đa 12 gốc (1 giờ sự kiện) mỗi lượt khi dữ liệu phát lại đi nhanh hơn lịch
+  min_valid_links: 10                  # ít hơn số đoạn có cửa sổ hợp lệ trong 60' trước L -> bỏ qua lượt, không dự báo
+  log_file: /opt/lakehouse/logs/inference_runs.jsonl
+
+# Làn dữ liệu: view đọc và bảng ghi dự báo
+lanes:
+  main:
+    unified_view: lakehouse.serving.v_traffic_5min_unified
+    weather_view: lakehouse.serving.v_weather_hourly
+    forecast_table: lakehouse.ml.traffic_forecast_15m
+  demo:
+    unified_view: lakehouse.serving.v_demo_traffic_5min_unified
+    weather_view: lakehouse.serving.v_weather_hourly
+    forecast_table: lakehouse.ml.traffic_forecast_15m_demo

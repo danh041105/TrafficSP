@@ -1,0 +1,2542 @@
+{
+ "folds": {
+  "expanding_2025-05": {
+   "persistence": {
+    "n": 731529,
+    "mae": 4.767410280817171,
+    "rmse": 8.120046875839174,
+    "mae_by_borough": {
+     "Bronx": 4.9376,
+     "Brooklyn": 3.93,
+     "Manhattan": 5.0116,
+     "Queens": 4.5738,
+     "Staten Island": 5.0058
+    },
+    "mae_by_peak": {
+     "off_peak": 4.7652,
+     "peak": 4.7777
+    },
+    "mae_by_rain": {
+     "dry": 4.8295,
+     "rain": 4.5943
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.6412,
+     "FREE_FLOW": 3.5187,
+     "NO_BASELINE": 2.1732,
+     "SLOW": 6.4932
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        311142,
+        39571,
+        11672
+       ],
+       [
+        41824,
+        90444,
+        29152
+       ],
+       [
+        9605,
+        31192,
+        164745
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.858154678669833,
+       "recall": 0.8585951405273398,
+       "f1": 0.8583748530945327,
+       "support": 362385
+      },
+      "SLOW": {
+       "precision": 0.5610426346250473,
+       "recall": 0.5603023169371825,
+       "f1": 0.5606722314003478,
+       "support": 161420
+      },
+      "CONGESTED": {
+       "precision": 0.8014097456328532,
+       "recall": 0.8015150188282687,
+       "f1": 0.8014623787736159,
+       "support": 205542
+      }
+     },
+     "macro_f1": 0.7401698210894988,
+     "accuracy": 0.7764904770980069,
+     "n": 729347
+    }
+   },
+   "seasonal_naive": {
+    "n": 731529,
+    "mae": 7.156827042854899,
+    "rmse": 11.324202248146163,
+    "mae_by_borough": {
+     "Bronx": 7.6022,
+     "Brooklyn": 6.4465,
+     "Manhattan": 6.8765,
+     "Queens": 7.3503,
+     "Staten Island": 6.4672
+    },
+    "mae_by_peak": {
+     "off_peak": 7.1919,
+     "peak": 6.9957
+    },
+    "mae_by_rain": {
+     "dry": 7.0907,
+     "rain": 7.341
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 9.3623,
+     "FREE_FLOW": 5.3199,
+     "NO_BASELINE": 2.1732,
+     "SLOW": 8.5396
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        287878,
+        50350,
+        24157
+       ],
+       [
+        52000,
+        71167,
+        38253
+       ],
+       [
+        23506,
+        40812,
+        141224
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.792214296721925,
+       "recall": 0.7943982228845012,
+       "f1": 0.7933047567476703,
+       "support": 362385
+      },
+      "SLOW": {
+       "precision": 0.43841211367038546,
+       "recall": 0.4408809317308884,
+       "f1": 0.43964305681253074,
+       "support": 161420
+      },
+      "CONGESTED": {
+       "precision": 0.6935187640570828,
+       "recall": 0.6870809858812311,
+       "f1": 0.6902848651924844,
+       "support": 205542
+      }
+     },
+     "macro_f1": 0.6410775595842285,
+     "accuracy": 0.6859135637769128,
+     "n": 729347
+    }
+   },
+   "lightgbm": {
+    "n": 731529,
+    "mae": 4.104630080416894,
+    "rmse": 6.864578624772955,
+    "mae_by_borough": {
+     "Bronx": 4.2847,
+     "Brooklyn": 3.4218,
+     "Manhattan": 4.2594,
+     "Queens": 3.9243,
+     "Staten Island": 4.3218
+    },
+    "mae_by_peak": {
+     "off_peak": 4.0751,
+     "peak": 4.24
+    },
+    "mae_by_rain": {
+     "dry": 4.1082,
+     "rain": 4.0947
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 6.0743,
+     "FREE_FLOW": 2.4993,
+     "NO_BASELINE": 7.6874,
+     "SLOW": 5.1521
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        322162,
+        36563,
+        3660
+       ],
+       [
+        38590,
+        105460,
+        17370
+       ],
+       [
+        7963,
+        42006,
+        155573
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8737425925172558,
+       "recall": 0.8890047877257613,
+       "f1": 0.8813076186568185,
+       "support": 362385
+      },
+      "SLOW": {
+       "precision": 0.5730618543816464,
+       "recall": 0.6533267253128485,
+       "f1": 0.6105676959551193,
+       "support": 161420
+      },
+      "CONGESTED": {
+       "precision": 0.8809193501809143,
+       "recall": 0.756891535549912,
+       "f1": 0.8142092661162649,
+       "support": 205542
+      }
+     },
+     "macro_f1": 0.7686948602427343,
+     "accuracy": 0.7996125301125527,
+     "n": 729347
+    }
+   },
+   "lightgbm_sliding": {
+    "n": 731529,
+    "mae": 4.131513077047034,
+    "rmse": 6.894053733641002,
+    "mae_by_borough": {
+     "Bronx": 4.3407,
+     "Brooklyn": 3.4317,
+     "Manhattan": 4.271,
+     "Queens": 3.9487,
+     "Staten Island": 4.3277
+    },
+    "mae_by_peak": {
+     "off_peak": 4.1065,
+     "peak": 4.2462
+    },
+    "mae_by_rain": {
+     "dry": 4.137,
+     "rain": 4.1162
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 6.1338,
+     "FREE_FLOW": 2.5249,
+     "NO_BASELINE": 6.1763,
+     "SLOW": 5.1612
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        321977,
+        36809,
+        3599
+       ],
+       [
+        38852,
+        105294,
+        17274
+       ],
+       [
+        7953,
+        42473,
+        155116
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8730822003243108,
+       "recall": 0.8884942809442996,
+       "f1": 0.8807208202777204,
+       "support": 362385
+      },
+      "SLOW": {
+       "precision": 0.5704641990291263,
+       "recall": 0.6522983521248916,
+       "f1": 0.6086428744840982,
+       "support": 161420
+      },
+      "CONGESTED": {
+       "precision": 0.8813959963406803,
+       "recall": 0.7546681456831207,
+       "f1": 0.813123966335632,
+       "support": 205542
+      }
+     },
+     "macro_f1": 0.7674958870324836,
+     "accuracy": 0.7985046898115712,
+     "n": 729347
+    }
+   }
+  },
+  "expanding_2025-06": {
+   "persistence": {
+    "n": 703430,
+    "mae": 4.840149832461249,
+    "rmse": 8.211704183488097,
+    "mae_by_borough": {
+     "Bronx": 5.1168,
+     "Brooklyn": 3.3647,
+     "Manhattan": 5.2352,
+     "Queens": 4.7782,
+     "Staten Island": 4.8397
+    },
+    "mae_by_peak": {
+     "off_peak": 4.8291,
+     "peak": 4.8924
+    },
+    "mae_by_rain": {
+     "dry": 4.8256,
+     "rain": 4.9174
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.8162,
+     "FREE_FLOW": 3.5868,
+     "NO_BASELINE": 3.8975,
+     "SLOW": 6.7696
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        308386,
+        38182,
+        11940
+       ],
+       [
+        40985,
+        77934,
+        25787
+       ],
+       [
+        9322,
+        28260,
+        149458
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8597491448118586,
+       "recall": 0.8601927990449306,
+       "f1": 0.8599709147087079,
+       "support": 358508
+      },
+      "SLOW": {
+       "precision": 0.5397988585360448,
+       "recall": 0.5385678548228823,
+       "f1": 0.5391826540566346,
+       "support": 144706
+      },
+      "CONGESTED": {
+       "precision": 0.7984507305606753,
+       "recall": 0.7990697177074423,
+       "f1": 0.7987601042153786,
+       "support": 187040
+      }
+     },
+     "macro_f1": 0.7326378909935737,
+     "accuracy": 0.7762041219609014,
+     "n": 690254
+    }
+   },
+   "seasonal_naive": {
+    "n": 703430,
+    "mae": 7.2032121662760185,
+    "rmse": 11.51496770322554,
+    "mae_by_borough": {
+     "Bronx": 7.731,
+     "Brooklyn": 5.4399,
+     "Manhattan": 7.0194,
+     "Queens": 7.5375,
+     "Staten Island": 6.5319
+    },
+    "mae_by_peak": {
+     "off_peak": 7.1167,
+     "peak": 7.6123
+    },
+    "mae_by_rain": {
+     "dry": 7.157,
+     "rain": 7.448
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 9.8735,
+     "FREE_FLOW": 5.1895,
+     "NO_BASELINE": 5.7316,
+     "SLOW": 8.8748
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        288704,
+        46014,
+        23790
+       ],
+       [
+        48504,
+        61888,
+        34314
+       ],
+       [
+        24393,
+        36957,
+        125690
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.7984048716679434,
+       "recall": 0.8052930478538833,
+       "f1": 0.8018341667719749,
+       "support": 358508
+      },
+      "SLOW": {
+       "precision": 0.4272292367060383,
+       "recall": 0.42768095310491616,
+       "f1": 0.42745497556679846,
+       "support": 144706
+      },
+      "CONGESTED": {
+       "precision": 0.6838634558255439,
+       "recall": 0.6719952951240377,
+       "f1": 0.6778774330293339,
+       "support": 187040
+      }
+     },
+     "macro_f1": 0.6357221917893691,
+     "accuracy": 0.690009764521466,
+     "n": 690254
+    }
+   },
+   "lightgbm": {
+    "n": 703430,
+    "mae": 4.1130345774321695,
+    "rmse": 6.871318673905658,
+    "mae_by_borough": {
+     "Bronx": 4.2794,
+     "Brooklyn": 3.0969,
+     "Manhattan": 4.3739,
+     "Queens": 4.1211,
+     "Staten Island": 4.0448
+    },
+    "mae_by_peak": {
+     "off_peak": 4.0875,
+     "peak": 4.2338
+    },
+    "mae_by_rain": {
+     "dry": 4.0902,
+     "rain": 4.2342
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 6.0482,
+     "FREE_FLOW": 2.5741,
+     "NO_BASELINE": 3.9524,
+     "SLOW": 5.4391
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        315888,
+        38546,
+        4074
+       ],
+       [
+        34918,
+        92314,
+        17474
+       ],
+       [
+        7174,
+        35463,
+        144403
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8824180121794514,
+       "recall": 0.881118412978232,
+       "f1": 0.881767733723384,
+       "support": 358508
+      },
+      "SLOW": {
+       "precision": 0.5550284687024645,
+       "recall": 0.6379417577709287,
+       "f1": 0.5936038118632024,
+       "support": 144706
+      },
+      "CONGESTED": {
+       "precision": 0.8701544431790107,
+       "recall": 0.7720434131736527,
+       "f1": 0.8181681685935335,
+       "support": 187040
+      }
+     },
+     "macro_f1": 0.76451323806004,
+     "accuracy": 0.8005821045586118,
+     "n": 690254
+    }
+   },
+   "lightgbm_sliding": {
+    "n": 703430,
+    "mae": 4.119772018309817,
+    "rmse": 6.873813877328906,
+    "mae_by_borough": {
+     "Bronx": 4.2909,
+     "Brooklyn": 3.0466,
+     "Manhattan": 4.4003,
+     "Queens": 4.131,
+     "Staten Island": 4.0445
+    },
+    "mae_by_peak": {
+     "off_peak": 4.0925,
+     "peak": 4.2485
+    },
+    "mae_by_rain": {
+     "dry": 4.0958,
+     "rain": 4.2466
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 6.0092,
+     "FREE_FLOW": 2.6159,
+     "NO_BASELINE": 3.7972,
+     "SLOW": 5.4328
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        314452,
+        39870,
+        4186
+       ],
+       [
+        34236,
+        92589,
+        17881
+       ],
+       [
+        7051,
+        35416,
+        144573
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8839401921071347,
+       "recall": 0.8771129235609805,
+       "f1": 0.8805133238221511,
+       "support": 358508
+      },
+      "SLOW": {
+       "precision": 0.5515353685778108,
+       "recall": 0.639842162729949,
+       "f1": 0.5924160457609389,
+       "support": 144706
+      },
+      "CONGESTED": {
+       "precision": 0.8675768122899664,
+       "recall": 0.7729523096663815,
+       "f1": 0.8175356254241122,
+       "support": 187040
+      }
+     },
+     "macro_f1": 0.7634883316690674,
+     "accuracy": 0.7991464011798556,
+     "n": 690254
+    }
+   }
+  },
+  "expanding_2025-07": {
+   "persistence": {
+    "n": 775622,
+    "mae": 4.588444126762729,
+    "rmse": 7.734819068589963,
+    "mae_by_borough": {
+     "Bronx": 5.1581,
+     "Brooklyn": 4.1501,
+     "Manhattan": 4.722,
+     "Queens": 4.4396,
+     "Staten Island": 4.1774
+    },
+    "mae_by_peak": {
+     "off_peak": 4.5585,
+     "peak": 4.7185
+    },
+    "mae_by_rain": {
+     "dry": 4.5723,
+     "rain": 4.6608
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.6209,
+     "FREE_FLOW": 3.4061,
+     "NO_BASELINE": 2.856,
+     "SLOW": 6.3424
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        352135,
+        46796,
+        12260
+       ],
+       [
+        49211,
+        93776,
+        28314
+       ],
+       [
+        10125,
+        30369,
+        147680
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.855795426652182,
+       "recall": 0.8563781794835004,
+       "f1": 0.856086703895403,
+       "support": 411191
+      },
+      "SLOW": {
+       "precision": 0.5485869393533441,
+       "recall": 0.5474340488380103,
+       "f1": 0.548009887740254,
+       "support": 171301
+      },
+      "CONGESTED": {
+       "precision": 0.7844720430907178,
+       "recall": 0.7848055523079703,
+       "f1": 0.7846387622599806,
+       "support": 188174
+      }
+     },
+     "macro_f1": 0.7295784512985458,
+     "accuracy": 0.7702312026221476,
+     "n": 770666
+    }
+   },
+   "seasonal_naive": {
+    "n": 775622,
+    "mae": 7.1564363302109655,
+    "rmse": 11.502455191989718,
+    "mae_by_borough": {
+     "Bronx": 8.0447,
+     "Brooklyn": 8.0569,
+     "Manhattan": 6.5552,
+     "Queens": 7.0394,
+     "Staten Island": 6.1909
+    },
+    "mae_by_peak": {
+     "off_peak": 7.1015,
+     "peak": 7.3947
+    },
+    "mae_by_rain": {
+     "dry": 7.0765,
+     "rain": 7.5149
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 9.9284,
+     "FREE_FLOW": 5.4153,
+     "NO_BASELINE": 3.1555,
+     "SLOW": 8.4066
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        322709,
+        57449,
+        31033
+       ],
+       [
+        58179,
+        75349,
+        37773
+       ],
+       [
+        27765,
+        38218,
+        122191
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.7896895410042261,
+       "recall": 0.7848153291292854,
+       "f1": 0.7872448904913618,
+       "support": 411191
+      },
+      "SLOW": {
+       "precision": 0.4405962015250035,
+       "recall": 0.43986316483850063,
+       "f1": 0.4402293780326423,
+       "support": 171301
+      },
+      "CONGESTED": {
+       "precision": 0.6397535039817379,
+       "recall": 0.6493511324625081,
+       "f1": 0.6445165901400688,
+       "support": 188174
+      }
+     },
+     "macro_f1": 0.6239969528880244,
+     "accuracy": 0.6750641652804198,
+     "n": 770666
+    }
+   },
+   "lightgbm": {
+    "n": 775622,
+    "mae": 3.9015677070810746,
+    "rmse": 6.4972156282078775,
+    "mae_by_borough": {
+     "Bronx": 4.2982,
+     "Brooklyn": 3.7288,
+     "Manhattan": 3.9281,
+     "Queens": 3.834,
+     "Staten Island": 3.5206
+    },
+    "mae_by_peak": {
+     "off_peak": 3.8567,
+     "peak": 4.0963
+    },
+    "mae_by_rain": {
+     "dry": 3.8659,
+     "rain": 4.0616
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.5802,
+     "FREE_FLOW": 2.5925,
+     "NO_BASELINE": 3.1203,
+     "SLOW": 5.2226
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        355863,
+        50480,
+        4848
+       ],
+       [
+        38675,
+        110054,
+        22572
+       ],
+       [
+        7263,
+        34984,
+        145927
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8856697718522353,
+       "recall": 0.8654445257799903,
+       "f1": 0.8754403487365189,
+       "support": 411191
+      },
+      "SLOW": {
+       "precision": 0.5628842357225422,
+       "recall": 0.6424597638075668,
+       "f1": 0.6000452539263234,
+       "support": 171301
+      },
+      "CONGESTED": {
+       "precision": 0.8418201641793628,
+       "recall": 0.7754897063356255,
+       "f1": 0.8072947352989177,
+       "support": 188174
+      }
+     },
+     "macro_f1": 0.7609267793205866,
+     "accuracy": 0.7939159116919652,
+     "n": 770666
+    }
+   },
+   "lightgbm_sliding": {
+    "n": 775622,
+    "mae": 3.9519027509052216,
+    "rmse": 6.545780513026776,
+    "mae_by_borough": {
+     "Bronx": 4.3201,
+     "Brooklyn": 3.8596,
+     "Manhattan": 4.0241,
+     "Queens": 3.8644,
+     "Staten Island": 3.5717
+    },
+    "mae_by_peak": {
+     "off_peak": 3.9048,
+     "peak": 4.1561
+    },
+    "mae_by_rain": {
+     "dry": 3.9158,
+     "rain": 4.1139
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.66,
+     "FREE_FLOW": 2.6512,
+     "NO_BASELINE": 3.0407,
+     "SLOW": 5.2242
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        354632,
+        51627,
+        4932
+       ],
+       [
+        38763,
+        110867,
+        21671
+       ],
+       [
+        7494,
+        36386,
+        144294
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8846139455061127,
+       "recall": 0.8624507832126675,
+       "f1": 0.8733917840606836,
+       "support": 411191
+      },
+      "SLOW": {
+       "precision": 0.557456757843926,
+       "recall": 0.6472057956462601,
+       "f1": 0.5989880625964057,
+       "support": 171301
+      },
+      "CONGESTED": {
+       "precision": 0.8443331363335811,
+       "recall": 0.7668115680168355,
+       "f1": 0.8037073447869642,
+       "support": 188174
+      }
+     },
+     "macro_f1": 0.7586957304813512,
+     "accuracy": 0.7912545772098418,
+     "n": 770666
+    }
+   }
+  },
+  "expanding_2025-08": {
+   "persistence": {
+    "n": 816723,
+    "mae": 4.427672152442755,
+    "rmse": 7.44061244471433,
+    "mae_by_borough": {
+     "Bronx": 5.0486,
+     "Brooklyn": 3.5143,
+     "Manhattan": 4.6131,
+     "Queens": 4.6904,
+     "Staten Island": 3.4438
+    },
+    "mae_by_peak": {
+     "off_peak": 4.4089,
+     "peak": 4.5138
+    },
+    "mae_by_rain": {
+     "dry": 4.4165,
+     "rain": 4.5534
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.4333,
+     "FREE_FLOW": 3.2758,
+     "SLOW": 6.0859
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        378131,
+        47119,
+        11885
+       ],
+       [
+        49380,
+        107235,
+        30037
+       ],
+       [
+        9935,
+        31832,
+        151169
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8644061209840758,
+       "recall": 0.8650211033204845,
+       "f1": 0.8647135028087736,
+       "support": 437135
+      },
+      "SLOW": {
+       "precision": 0.5759563017627534,
+       "recall": 0.5745183550136083,
+       "f1": 0.5752364297630606,
+       "support": 186652
+      },
+      "CONGESTED": {
+       "precision": 0.7828899327260204,
+       "recall": 0.7835188870920927,
+       "f1": 0.7832042836381912,
+       "support": 192936
+      }
+     },
+     "macro_f1": 0.7410514054033417,
+     "accuracy": 0.7793768511478187,
+     "n": 816723
+    }
+   },
+   "seasonal_naive": {
+    "n": 816723,
+    "mae": 6.4158702012177695,
+    "rmse": 10.395665604186174,
+    "mae_by_borough": {
+     "Bronx": 7.3498,
+     "Brooklyn": 6.282,
+     "Manhattan": 5.9782,
+     "Queens": 6.7537,
+     "Staten Island": 5.0451
+    },
+    "mae_by_peak": {
+     "off_peak": 6.3186,
+     "peak": 6.8626
+    },
+    "mae_by_rain": {
+     "dry": 6.336,
+     "rain": 7.3156
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 8.8872,
+     "FREE_FLOW": 4.6854,
+     "SLOW": 7.9139
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        353490,
+        58400,
+        25245
+       ],
+       [
+        54402,
+        89615,
+        42635
+       ],
+       [
+        22196,
+        40698,
+        130042
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8219015643310206,
+       "recall": 0.8086517894929484,
+       "f1": 0.8152228434900827,
+       "support": 437135
+      },
+      "SLOW": {
+       "precision": 0.4748745449439095,
+       "recall": 0.4801180807063412,
+       "f1": 0.4774819176002024,
+       "support": 186652
+      },
+      "CONGESTED": {
+       "precision": 0.6570366103818676,
+       "recall": 0.6740162540946221,
+       "f1": 0.6654181313929867,
+       "support": 192936
+      }
+     },
+     "macro_f1": 0.6527076308277572,
+     "accuracy": 0.701764245649994,
+     "n": 816723
+    }
+   },
+   "lightgbm": {
+    "n": 816723,
+    "mae": 3.686782578655424,
+    "rmse": 6.244228243518606,
+    "mae_by_borough": {
+     "Bronx": 4.1737,
+     "Brooklyn": 3.0395,
+     "Manhattan": 3.7518,
+     "Queens": 3.9109,
+     "Staten Island": 2.9119
+    },
+    "mae_by_peak": {
+     "off_peak": 3.6425,
+     "peak": 3.89
+    },
+    "mae_by_rain": {
+     "dry": 3.6656,
+     "rain": 3.9255
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.3638,
+     "FREE_FLOW": 2.3684,
+     "SLOW": 5.041
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        388427,
+        43912,
+        4796
+       ],
+       [
+        41406,
+        122739,
+        22507
+       ],
+       [
+        7512,
+        36675,
+        148749
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8881478009351884,
+       "recall": 0.8885744678417422,
+       "f1": 0.888361083157991,
+       "support": 437135
+      },
+      "SLOW": {
+       "precision": 0.6036561974366289,
+       "recall": 0.6575820243019095,
+       "f1": 0.6294662775848895,
+       "support": 186652
+      },
+      "CONGESTED": {
+       "precision": 0.8449151387090178,
+       "recall": 0.7709758676452295,
+       "f1": 0.8062538619142086,
+       "support": 192936
+      }
+     },
+     "macro_f1": 0.7746937408856963,
+     "accuracy": 0.8080034479254288,
+     "n": 816723
+    }
+   },
+   "lightgbm_sliding": {
+    "n": 816723,
+    "mae": 3.732086666797801,
+    "rmse": 6.269011167607925,
+    "mae_by_borough": {
+     "Bronx": 4.2211,
+     "Brooklyn": 3.1077,
+     "Manhattan": 3.7922,
+     "Queens": 3.9568,
+     "Staten Island": 2.9468
+    },
+    "mae_by_peak": {
+     "off_peak": 3.6894,
+     "peak": 3.9283
+    },
+    "mae_by_rain": {
+     "dry": 3.7125,
+     "rain": 3.953
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.4121,
+     "FREE_FLOW": 2.4196,
+     "SLOW": 5.0694
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        387167,
+        45071,
+        4897
+       ],
+       [
+        41683,
+        122190,
+        22779
+       ],
+       [
+        7390,
+        36816,
+        148730
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.887509169264625,
+       "recall": 0.8856920630926373,
+       "f1": 0.8865996851295264,
+       "support": 437135
+      },
+      "SLOW": {
+       "precision": 0.5987445915022271,
+       "recall": 0.6546407217709963,
+       "f1": 0.625446281182098,
+       "support": 186652
+      },
+      "CONGESTED": {
+       "precision": 0.8431119122932327,
+       "recall": 0.770877389393374,
+       "f1": 0.805378213146623,
+       "support": 192936
+      }
+     },
+     "macro_f1": 0.7724747264860824,
+     "accuracy": 0.8057652349695061,
+     "n": 816723
+    }
+   }
+  },
+  "expanding_2025-09": {
+   "persistence": {
+    "n": 772932,
+    "mae": 4.405256992337507,
+    "rmse": 7.438158855242701,
+    "mae_by_borough": {
+     "Bronx": 4.8851,
+     "Brooklyn": 3.1672,
+     "Manhattan": 4.7463,
+     "Queens": 4.712,
+     "Staten Island": 3.6287
+    },
+    "mae_by_peak": {
+     "off_peak": 4.3506,
+     "peak": 4.6479
+    },
+    "mae_by_rain": {
+     "dry": 4.4145,
+     "rain": 4.3427
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.307,
+     "FREE_FLOW": 3.2627,
+     "SLOW": 6.1445
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        356552,
+        42767,
+        10960
+       ],
+       [
+        44964,
+        96110,
+        28161
+       ],
+       [
+        9258,
+        29889,
+        154271
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8680004089840155,
+       "recall": 0.8690476480638785,
+       "f1": 0.8685237128419236,
+       "support": 410279
+      },
+      "SLOW": {
+       "precision": 0.5694867449604778,
+       "recall": 0.5679085295594883,
+       "f1": 0.5686965423179222,
+       "support": 169235
+      },
+      "CONGESTED": {
+       "precision": 0.7977113841317117,
+       "recall": 0.7976041526641781,
+       "f1": 0.7976577647940849,
+       "support": 193418
+      }
+     },
+     "macro_f1": 0.7449593399846436,
+     "accuracy": 0.7852346648864325,
+     "n": 772932
+    }
+   },
+   "seasonal_naive": {
+    "n": 772932,
+    "mae": 6.943233615095428,
+    "rmse": 11.204125251261713,
+    "mae_by_borough": {
+     "Bronx": 7.7356,
+     "Brooklyn": 7.4429,
+     "Manhattan": 6.5884,
+     "Queens": 7.364,
+     "Staten Island": 5.3856
+    },
+    "mae_by_peak": {
+     "off_peak": 6.6504,
+     "peak": 8.2433
+    },
+    "mae_by_rain": {
+     "dry": 6.9208,
+     "rain": 7.0944
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 10.0183,
+     "FREE_FLOW": 4.8886,
+     "SLOW": 8.4099
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        334566,
+        50673,
+        25040
+       ],
+       [
+        54395,
+        75013,
+        39827
+       ],
+       [
+        27227,
+        41128,
+        125063
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8038818995261757,
+       "recall": 0.815459723748961,
+       "f1": 0.8096294225903757,
+       "support": 410279
+      },
+      "SLOW": {
+       "precision": 0.4496804824535111,
+       "recall": 0.443247555174757,
+       "f1": 0.4464408464241822,
+       "support": 169235
+      },
+      "CONGESTED": {
+       "precision": 0.6584689095982731,
+       "recall": 0.6465944224425855,
+       "f1": 0.6524776443336082,
+       "support": 193418
+      }
+     },
+     "macro_f1": 0.6361826377827221,
+     "accuracy": 0.6917063855552623,
+     "n": 772932
+    }
+   },
+   "lightgbm": {
+    "n": 772932,
+    "mae": 3.6558161193350713,
+    "rmse": 6.16340495456094,
+    "mae_by_borough": {
+     "Bronx": 4.1275,
+     "Brooklyn": 2.7661,
+     "Manhattan": 3.9171,
+     "Queens": 3.9054,
+     "Staten Island": 2.8995
+    },
+    "mae_by_peak": {
+     "off_peak": 3.5736,
+     "peak": 4.0207
+    },
+    "mae_by_rain": {
+     "dry": 3.643,
+     "rain": 3.7424
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.2633,
+     "FREE_FLOW": 2.3742,
+     "SLOW": 4.9257
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        365245,
+        40953,
+        4081
+       ],
+       [
+        38152,
+        111295,
+        19788
+       ],
+       [
+        6700,
+        35291,
+        151427
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.890630753212045,
+       "recall": 0.8902356688984813,
+       "f1": 0.8904331672306358,
+       "support": 410279
+      },
+      "SLOW": {
+       "precision": 0.5934498957550163,
+       "recall": 0.6576358318314769,
+       "f1": 0.6238963601607741,
+       "support": 169235
+      },
+      "CONGESTED": {
+       "precision": 0.8638360259218693,
+       "recall": 0.782900247133152,
+       "f1": 0.8213791719327175,
+       "support": 193418
+      }
+     },
+     "macro_f1": 0.7785695664413758,
+     "accuracy": 0.8124479255613689,
+     "n": 772932
+    }
+   },
+   "lightgbm_sliding": {
+    "n": 772932,
+    "mae": 3.752007165893239,
+    "rmse": 6.250178531866673,
+    "mae_by_borough": {
+     "Bronx": 4.2446,
+     "Brooklyn": 2.8414,
+     "Manhattan": 3.9895,
+     "Queens": 4.0148,
+     "Staten Island": 2.9776
+    },
+    "mae_by_peak": {
+     "off_peak": 3.6609,
+     "peak": 4.1565
+    },
+    "mae_by_rain": {
+     "dry": 3.7396,
+     "rain": 3.8356
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.4734,
+     "FREE_FLOW": 2.445,
+     "SLOW": 4.9533
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        363139,
+        43090,
+        4050
+       ],
+       [
+        37953,
+        111965,
+        19317
+       ],
+       [
+        6835,
+        36956,
+        149627
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8902058456537567,
+       "recall": 0.8851025765393793,
+       "f1": 0.8876468762145474,
+       "support": 410279
+      },
+      "SLOW": {
+       "precision": 0.5831176338855586,
+       "recall": 0.6615948237657695,
+       "f1": 0.6198822962745607,
+       "support": 169235
+      },
+      "CONGESTED": {
+       "precision": 0.8649259511890586,
+       "recall": 0.7735939778097178,
+       "f1": 0.8167145180834688,
+       "support": 193418
+      }
+     },
+     "macro_f1": 0.7747478968575257,
+     "accuracy": 0.8082612700729171,
+     "n": 772932
+    }
+   }
+  },
+  "final_test": {
+   "persistence": {
+    "n": 2241548,
+    "mae": 4.309801941104215,
+    "rmse": 7.371822807924866,
+    "mae_by_borough": {
+     "Bronx": 4.4668,
+     "Brooklyn": 3.6646,
+     "Manhattan": 4.5724,
+     "Queens": 4.7863,
+     "Staten Island": 3.4342
+    },
+    "mae_by_peak": {
+     "off_peak": 4.2701,
+     "peak": 4.495
+    },
+    "mae_by_rain": {
+     "dry": 4.3269,
+     "rain": 4.1854
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.518,
+     "FREE_FLOW": 3.0929,
+     "SLOW": 5.8646
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        1041164,
+        119869,
+        30135
+       ],
+       [
+        125673,
+        312833,
+        82075
+       ],
+       [
+        25097,
+        86775,
+        417927
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8735080969248298,
+       "recall": 0.8740698205458843,
+       "f1": 0.8737888684580013,
+       "support": 1191168
+      },
+      "SLOW": {
+       "precision": 0.6022076049565236,
+       "recall": 0.6009304988080625,
+       "f1": 0.6015683740714459,
+       "support": 520581
+      },
+      "CONGESTED": {
+       "precision": 0.7883377315675004,
+       "recall": 0.7888406735384551,
+       "f1": 0.7885891223621049,
+       "support": 529799
+      }
+     },
+     "macro_f1": 0.7546487882971841,
+     "accuracy": 0.7904912141073936,
+     "n": 2241548
+    }
+   },
+   "seasonal_naive": {
+    "n": 2241548,
+    "mae": 6.901761485799016,
+    "rmse": 11.222187087791449,
+    "mae_by_borough": {
+     "Bronx": 7.1218,
+     "Brooklyn": 6.6322,
+     "Manhattan": 6.7641,
+     "Queens": 7.6264,
+     "Staten Island": 5.6586
+    },
+    "mae_by_peak": {
+     "off_peak": 6.7337,
+     "peak": 7.6862
+    },
+    "mae_by_rain": {
+     "dry": 6.7743,
+     "rain": 7.8284
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 9.6324,
+     "FREE_FLOW": 5.0943,
+     "SLOW": 8.2585
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        956568,
+        157086,
+        77514
+       ],
+       [
+        156057,
+        247202,
+        117322
+       ],
+       [
+        70942,
+        110793,
+        348064
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.8082077313747341,
+       "recall": 0.8030504513217279,
+       "f1": 0.8056208376934689,
+       "support": 1191168
+      },
+      "SLOW": {
+       "precision": 0.479928399610935,
+       "recall": 0.4748578991549826,
+       "f1": 0.47737968565033767,
+       "support": 520581
+      },
+      "CONGESTED": {
+       "precision": 0.6411199115859274,
+       "recall": 0.6569736824720318,
+       "f1": 0.6489499850377412,
+       "support": 529799
+      }
+     },
+     "macro_f1": 0.6439835027938493,
+     "accuracy": 0.6923046037827429,
+     "n": 2241548
+    }
+   },
+   "lightgbm": {
+    "n": 2241548,
+    "mae": 3.599637633471667,
+    "rmse": 6.146323245673417,
+    "mae_by_borough": {
+     "Bronx": 3.7516,
+     "Brooklyn": 3.0999,
+     "Manhattan": 3.8029,
+     "Queens": 4.0056,
+     "Staten Island": 2.8295
+    },
+    "mae_by_peak": {
+     "off_peak": 3.5355,
+     "peak": 3.899
+    },
+    "mae_by_rain": {
+     "dry": 3.5918,
+     "rain": 3.6569
+    },
+    "mae_by_actual_state": {
+     "CONGESTED": 5.609,
+     "FREE_FLOW": 2.2133,
+     "SLOW": 4.727
+    },
+    "state_classification": {
+     "confusion": {
+      "labels": [
+       "FREE_FLOW",
+       "SLOW",
+       "CONGESTED"
+      ],
+      "matrix": [
+       [
+        1073067,
+        107282,
+        10819
+       ],
+       [
+        114769,
+        353329,
+        52483
+       ],
+       [
+        19332,
+        106940,
+        403527
+       ]
+      ]
+     },
+     "per_class": {
+      "FREE_FLOW": {
+       "precision": 0.888912727971583,
+       "recall": 0.9008527764345583,
+       "f1": 0.894842924427603,
+       "support": 1191168
+      },
+      "SLOW": {
+       "precision": 0.6225502201564265,
+       "recall": 0.6787205065109945,
+       "f1": 0.6494230479390367,
+       "support": 520581
+      },
+      "CONGESTED": {
+       "precision": 0.8644000265621887,
+       "recall": 0.7616605542856819,
+       "f1": 0.8097845936497872,
+       "support": 529799
+      }
+     },
+     "macro_f1": 0.7846835220054756,
+     "accuracy": 0.8163657436735684,
+     "n": 2241548
+    }
+   }
+  }
+ },
+ "walk_forward_summary": {
+  "lightgbm": {
+   "mae_mean": 3.8923662125841267,
+   "mae_std": 0.2191208122751467,
+   "rmse_mean": 6.528149224993207,
+   "macro_f1_mean": 0.7694796369900866,
+   "folds": 5
+  },
+  "lightgbm_sliding": {
+   "mae_mean": 3.9374563357906225,
+   "mae_std": 0.19214175846690013,
+   "rmse_mean": 6.566567564694256,
+   "macro_f1_mean": 0.767380514505302,
+   "folds": 5
+  },
+  "persistence": {
+   "mae_mean": 4.605786676964282,
+   "mae_std": 0.19575876754722127,
+   "rmse_mean": 7.789068285574854,
+   "macro_f1_mean": 0.7376793817539207,
+   "folds": 5
+  },
+  "seasonal_naive": {
+   "mae_mean": 6.975115871131017,
+   "mae_std": 0.32851795089299946,
+   "rmse_mean": 11.18828319976186,
+   "macro_f1_mean": 0.6379373945744202,
+   "folds": 5
+  }
+ },
+ "focus_fold": "final_test",
+ "focus_extra": {
+  "persistence": {
+   "mae_by_data_group": {
+    "low_data": 4.4745,
+    "mid_data": 4.9757,
+    "high_data": 3.6535
+   }
+  },
+  "seasonal_naive": {
+   "mae_by_data_group": {
+    "low_data": 6.3796,
+    "mid_data": 8.0591,
+    "high_data": 6.1504
+   }
+  },
+  "lightgbm": {
+   "mae_by_data_group": {
+    "low_data": 3.7316,
+    "mid_data": 4.1795,
+    "high_data": 3.0336
+   }
+  },
+  "link_mae_distribution": {
+   "persistence": {
+    "count": 110.0,
+    "mean": 4.376,
+    "std": 1.494,
+    "min": 1.766,
+    "25%": 3.484,
+    "50%": 4.14,
+    "75%": 4.924,
+    "max": 10.528
+   },
+   "seasonal_naive": {
+    "count": 110.0,
+    "mean": 6.781,
+    "std": 2.309,
+    "min": 2.034,
+    "25%": 5.141,
+    "50%": 6.792,
+    "75%": 8.093,
+    "max": 14.256
+   },
+   "lightgbm": {
+    "count": 110.0,
+    "mean": 3.657,
+    "std": 1.253,
+    "min": 1.368,
+    "25%": 2.909,
+    "50%": 3.471,
+    "75%": 4.17,
+    "max": 8.93
+   }
+  }
+ },
+ "lgbm_results": [
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl31_mcs100_lr0.05",
+   "n": 816723,
+   "mae": 3.723410363750211,
+   "rmse": 6.294813339392614,
+   "best_iteration": 2997,
+   "es_mae": 4.101757149401334,
+   "n_fit": 1689204,
+   "train_seconds": 179.9
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl31_mcs100_lr0.05",
+   "n": 772932,
+   "mae": 3.702025245437162,
+   "rmse": 6.240355220790192,
+   "best_iteration": 3000,
+   "es_mae": 3.6479861121545167,
+   "n_fit": 1957460,
+   "train_seconds": 213.6
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl31_mcs500_lr0.05",
+   "n": 816723,
+   "mae": 3.7236710083245192,
+   "rmse": 6.296587054564001,
+   "best_iteration": 2999,
+   "es_mae": 4.101978013091458,
+   "n_fit": 1689204,
+   "train_seconds": 181.0
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl31_mcs500_lr0.05",
+   "n": 772932,
+   "mae": 3.7003872987132738,
+   "rmse": 6.2372747014364425,
+   "best_iteration": 3000,
+   "es_mae": 3.6477656098157025,
+   "n_fit": 1957460,
+   "train_seconds": 216.1
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl63_mcs100_lr0.05",
+   "n": 816723,
+   "mae": 3.7116125616590296,
+   "rmse": 6.27484913616225,
+   "best_iteration": 3000,
+   "es_mae": 4.087940649228303,
+   "n_fit": 1689204,
+   "train_seconds": 199.7
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl63_mcs100_lr0.05",
+   "n": 772932,
+   "mae": 3.688418951298619,
+   "rmse": 6.217658467173828,
+   "best_iteration": 3000,
+   "es_mae": 3.6340787625977056,
+   "n_fit": 1957460,
+   "train_seconds": 237.2
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl63_mcs500_lr0.05",
+   "n": 816723,
+   "mae": 3.7088007217447196,
+   "rmse": 6.270937415568363,
+   "best_iteration": 2991,
+   "es_mae": 4.088118076745275,
+   "n_fit": 1689204,
+   "train_seconds": 204.7
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl63_mcs500_lr0.05",
+   "n": 772932,
+   "mae": 3.68686882924498,
+   "rmse": 6.214296224000402,
+   "best_iteration": 2993,
+   "es_mae": 3.63083388790527,
+   "n_fit": 1957460,
+   "train_seconds": 241.7
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl127_mcs100_lr0.05",
+   "n": 816723,
+   "mae": 3.705379989741698,
+   "rmse": 6.263331877876293,
+   "best_iteration": 2054,
+   "es_mae": 4.088548296619833,
+   "n_fit": 1689204,
+   "train_seconds": 167.5
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl127_mcs100_lr0.05",
+   "n": 772932,
+   "mae": 3.6814576891460966,
+   "rmse": 6.204099388619932,
+   "best_iteration": 2570,
+   "es_mae": 3.6222381869381466,
+   "n_fit": 1957460,
+   "train_seconds": 237.0
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-08",
+   "model": "lgbm_nl127_mcs500_lr0.05",
+   "n": 816723,
+   "mae": 3.7001856487436555,
+   "rmse": 6.255637369661197,
+   "best_iteration": 2981,
+   "es_mae": 4.0846766920864965,
+   "n_fit": 1689204,
+   "train_seconds": 240.8
+  },
+  {
+   "experiment": "tune",
+   "fold": "expanding_2025-09",
+   "model": "lgbm_nl127_mcs500_lr0.05",
+   "n": 772932,
+   "mae": 3.6768569632811445,
+   "rmse": 6.195987879615804,
+   "best_iteration": 2992,
+   "es_mae": 3.617072038533145,
+   "n_fit": 1957460,
+   "train_seconds": 278.8
+  },
+  {
+   "experiment": "walk_forward",
+   "fold": "expanding_2025-05",
+   "model": "lightgbm",
+   "n": 731529,
+   "mae": 4.104630080416894,
+   "rmse": 6.864578624772955,
+   "best_iteration": 2400,
+   "es_mae": 3.8238067831160563,
+   "n_fit": 2843184,
+   "train_seconds": 341.1
+  },
+  {
+   "experiment": "walk_forward",
+   "fold": "expanding_2025-06",
+   "model": "lightgbm",
+   "n": 703430,
+   "mae": 4.1130345774321695,
+   "rmse": 6.871318673905658,
+   "best_iteration": 2972,
+   "es_mae": 4.08039205946657,
+   "n_fit": 3591273,
+   "train_seconds": 512.8
+  },
+  {
+   "experiment": "walk_forward",
+   "fold": "expanding_2025-07",
+   "model": "lightgbm",
+   "n": 775622,
+   "mae": 3.9015677070810746,
+   "rmse": 6.4972156282078775,
+   "best_iteration": 2282,
+   "es_mae": 4.018420081968526,
+   "n_fit": 4283156,
+   "train_seconds": 506.5
+  },
+  {
+   "experiment": "walk_forward",
+   "fold": "expanding_2025-08",
+   "model": "lightgbm",
+   "n": 816723,
+   "mae": 3.686782578655424,
+   "rmse": 6.244228243518606,
+   "best_iteration": 1779,
+   "es_mae": 4.048585532612855,
+   "n_fit": 5068612,
+   "train_seconds": 497.1
+  },
+  {
+   "experiment": "walk_forward",
+   "fold": "expanding_2025-09",
+   "model": "lightgbm",
+   "n": 772932,
+   "mae": 3.6558161193350713,
+   "rmse": 6.16340495456094,
+   "best_iteration": 2986,
+   "es_mae": 3.6066160755208085,
+   "n_fit": 5873022,
+   "train_seconds": 866.2
+  },
+  {
+   "experiment": "sliding",
+   "fold": "sliding_2025-05",
+   "model": "lightgbm_sliding",
+   "n": 731529,
+   "mae": 4.131513077047034,
+   "rmse": 6.894053733641002,
+   "best_iteration": 2029,
+   "es_mae": 3.834709865343871,
+   "n_fit": 2061461,
+   "train_seconds": 212.0
+  },
+  {
+   "experiment": "sliding",
+   "fold": "sliding_2025-06",
+   "model": "lightgbm_sliding",
+   "n": 703430,
+   "mae": 4.119772018309817,
+   "rmse": 6.873813877328906,
+   "best_iteration": 1878,
+   "es_mae": 4.1245654330102886,
+   "n_fit": 2055561,
+   "train_seconds": 198.1
+  },
+  {
+   "experiment": "sliding",
+   "fold": "sliding_2025-07",
+   "model": "lightgbm_sliding",
+   "n": 775622,
+   "mae": 3.9519027509052216,
+   "rmse": 6.545780513026776,
+   "best_iteration": 1514,
+   "es_mae": 4.03398953211834,
+   "n_fit": 1987528,
+   "train_seconds": 160.5
+  },
+  {
+   "experiment": "sliding",
+   "fold": "sliding_2025-08",
+   "model": "lightgbm_sliding",
+   "n": 816723,
+   "mae": 3.732086666797801,
+   "rmse": 6.269011167607925,
+   "best_iteration": 1552,
+   "es_mae": 4.086616622857592,
+   "n_fit": 2006356,
+   "train_seconds": 164.3
+  },
+  {
+   "experiment": "sliding",
+   "fold": "sliding_2025-09",
+   "model": "lightgbm_sliding",
+   "n": 772932,
+   "mae": 3.752007165893239,
+   "rmse": 6.250178531866673,
+   "best_iteration": 2064,
+   "es_mae": 3.6415894026826505,
+   "n_fit": 2073200,
+   "train_seconds": 216.9
+  },
+  {
+   "experiment": "ablation",
+   "fold": "expanding_2025-09",
+   "model": "traffic",
+   "n": 772932,
+   "mae": 3.899537156489243,
+   "rmse": 6.547094573058127,
+   "best_iteration": 1377,
+   "es_mae": 3.828698887954107,
+   "n_fit": 1957460,
+   "train_seconds": 112.1
+  },
+  {
+   "experiment": "ablation",
+   "fold": "expanding_2025-09",
+   "model": "traffic_temporal",
+   "n": 772932,
+   "mae": 3.786311890349411,
+   "rmse": 6.39463637913239,
+   "best_iteration": 1783,
+   "es_mae": 3.7540500926430793,
+   "n_fit": 1957460,
+   "train_seconds": 143.0
+  },
+  {
+   "experiment": "ablation",
+   "fold": "expanding_2025-09",
+   "model": "traffic_temporal_spatial",
+   "n": 772932,
+   "mae": 3.66403462347753,
+   "rmse": 6.194173889639312,
+   "best_iteration": 3000,
+   "es_mae": 3.6243043108067226,
+   "n_fit": 1957460,
+   "train_seconds": 256.5
+  },
+  {
+   "experiment": "ablation",
+   "fold": "expanding_2025-09",
+   "model": "all",
+   "n": 772932,
+   "mae": 3.6768569632811445,
+   "rmse": 6.195987879615804,
+   "best_iteration": 2992,
+   "es_mae": 3.6170720385331454,
+   "n_fit": 1957460,
+   "train_seconds": 279.6
+  },
+  {
+   "experiment": "weighting",
+   "fold": "expanding_2025-09",
+   "model": "unweighted",
+   "n": 772932,
+   "mae": 3.6768569632811445,
+   "rmse": 6.195987879615804,
+   "train_state_counts": {
+    "FREE_FLOW": 1076419,
+    "CONGESTED": 445481,
+    "SLOW": 435560
+   },
+   "best_iteration": 2992,
+   "es_mae": 3.617072038533145,
+   "n_fit": 1957460,
+   "train_seconds": 277.7
+  },
+  {
+   "experiment": "weighting",
+   "fold": "expanding_2025-09",
+   "model": "class_weighted",
+   "n": 772932,
+   "mae": 3.787682668036213,
+   "rmse": 6.169823023207425,
+   "train_state_counts": {
+    "FREE_FLOW": 1076419,
+    "CONGESTED": 445481,
+    "SLOW": 435560
+   },
+   "best_iteration": 2958,
+   "es_mae": 3.7606397338887687,
+   "n_fit": 1957460,
+   "train_seconds": 1249.5
+  },
+  {
+   "experiment": "spatial",
+   "fold": "expanding_2025-09",
+   "model": "with_link_id__seen_links",
+   "n": 602573,
+   "mae": 3.79924798439027,
+   "rmse": 6.366973549966733,
+   "holdout_links": 23,
+   "best_iteration": 2999,
+   "es_mae": 3.7387596391656754,
+   "n_fit": 1529144,
+   "train_seconds": 213.6
+  },
+  {
+   "experiment": "spatial",
+   "fold": "expanding_2025-09",
+   "model": "with_link_id__holdout_links",
+   "n": 170359,
+   "mae": 3.998629804161206,
+   "rmse": 6.288241618521011,
+   "holdout_links": 23,
+   "best_iteration": 2999,
+   "es_mae": 3.7387596391656754,
+   "n_fit": 1529144,
+   "train_seconds": 213.6
+  },
+  {
+   "experiment": "spatial",
+   "fold": "expanding_2025-09",
+   "model": "no_link_id__seen_links",
+   "n": 602573,
+   "mae": 3.825489796317755,
+   "rmse": 6.412423559266767,
+   "holdout_links": 23,
+   "best_iteration": 2999,
+   "es_mae": 3.7752889386332105,
+   "n_fit": 1529144,
+   "train_seconds": 195.7
+  },
+  {
+   "experiment": "spatial",
+   "fold": "expanding_2025-09",
+   "model": "no_link_id__holdout_links",
+   "n": 170359,
+   "mae": 3.501156233783443,
+   "rmse": 5.797492903969199,
+   "holdout_links": 23,
+   "best_iteration": 2999,
+   "es_mae": 3.7752889386332105,
+   "n_fit": 1529144,
+   "train_seconds": 195.7
+  },
+  {
+   "experiment": "weather_lag",
+   "fold": "expanding_2025-09",
+   "model": "no_weather",
+   "n": 772932,
+   "mae": 3.66403462347753,
+   "rmse": 6.194173889639312,
+   "best_iteration": 3000,
+   "es_mae": 3.624304310806723,
+   "n_fit": 1957460,
+   "train_seconds": 256.7
+  },
+  {
+   "experiment": "weather_lag",
+   "fold": "expanding_2025-09",
+   "model": "weather_lag_0min",
+   "n": 772932,
+   "mae": 3.672498466245631,
+   "rmse": 6.193407971696948,
+   "best_iteration": 3000,
+   "es_mae": 3.616017975519627,
+   "n_fit": 1957460,
+   "train_seconds": 273.0
+  },
+  {
+   "experiment": "weather_lag",
+   "fold": "expanding_2025-09",
+   "model": "weather_lag_60min",
+   "n": 772932,
+   "mae": 3.6730831644934634,
+   "rmse": 6.192988008925101,
+   "best_iteration": 3000,
+   "es_mae": 3.6160200690127238,
+   "n_fit": 1957460,
+   "train_seconds": 270.3
+  },
+  {
+   "experiment": "weather_lag",
+   "fold": "expanding_2025-09",
+   "model": "weather_lag_180min",
+   "n": 772932,
+   "mae": 3.673078724165025,
+   "rmse": 6.191062078359568,
+   "best_iteration": 2984,
+   "es_mae": 3.6140461901101557,
+   "n_fit": 1957460,
+   "train_seconds": 271.8
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "lightgbm_A0",
+   "n": 773875,
+   "mae": 3.1612261495911853,
+   "rmse": 5.440924521087412,
+   "best_iteration": 2962,
+   "es_mae": 3.114448839069684,
+   "n_fit": 1957656,
+   "train_seconds": 278.4
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "persistence_A0",
+   "n": 773875,
+   "mae": 3.6901725863107204,
+   "rmse": 6.402640491016417
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "seasonal_naive_A0",
+   "n": 773875,
+   "mae": 6.901084503419217,
+   "rmse": 11.164731924287317
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "lightgbm_A5",
+   "n": 773400,
+   "mae": 3.4623256845176655,
+   "rmse": 5.882556019206466,
+   "best_iteration": 2997,
+   "es_mae": 3.418270298855075,
+   "n_fit": 1957460,
+   "train_seconds": 274.7
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "persistence_A5",
+   "n": 773400,
+   "mae": 4.077366080563722,
+   "rmse": 6.966603876513963
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "seasonal_naive_A5",
+   "n": 773400,
+   "mae": 6.923373745448188,
+   "rmse": 11.1831558037316
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "lightgbm_A10",
+   "n": 772932,
+   "mae": 3.6982058283345975,
+   "rmse": 6.2235586356446415,
+   "best_iteration": 2988,
+   "es_mae": 3.6392623443992176,
+   "n_fit": 1957460,
+   "train_seconds": 297.0
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "persistence_A10",
+   "n": 772932,
+   "mae": 4.405256992337507,
+   "rmse": 7.438158855242701
+  },
+  {
+   "experiment": "avail_lag",
+   "fold": "expanding_2025-09",
+   "model": "seasonal_naive_A10",
+   "n": 772932,
+   "mae": 6.943233615095428,
+   "rmse": 11.204125251261713
+  },
+  {
+   "experiment": "final",
+   "fold": "final_test",
+   "model": "lightgbm",
+   "n": 2241548,
+   "mae": 3.599637633471667,
+   "rmse": 6.146323245673417,
+   "rows_in_period": 2254395,
+   "no_target": 0,
+   "no_recent_data": 12847,
+   "eval_rows": 2241548,
+   "best_iteration": 2799,
+   "es_mae": 3.7404940022482394,
+   "n_fit": 6665829,
+   "train_seconds": 1028.9
+  }
+ ],
+ "baselines_summary": {
+  "expanding_2025-05": {
+   "rows_in_period": 1106824,
+   "no_target": 370837,
+   "no_recent_data": 4458,
+   "eval_rows": 731529,
+   "persistence": {
+    "mae": 4.767410280817171,
+    "rmse": 8.120046875839174
+   },
+   "seasonal_naive": {
+    "mae": 7.156827042854899,
+    "rmse": 11.324202248146163,
+    "pure_coverage": 0.9287929801826038,
+    "mae_pure_rows": 7.268464549193015
+   },
+   "seconds": 0.6
+  },
+  "expanding_2025-06": {
+   "rows_in_period": 1071112,
+   "no_target": 363316,
+   "no_recent_data": 4366,
+   "eval_rows": 703430,
+   "persistence": {
+    "mae": 4.840149832461249,
+    "rmse": 8.211704183488097
+   },
+   "seasonal_naive": {
+    "mae": 7.2032121662760185,
+    "rmse": 11.51496770322554,
+    "pure_coverage": 0.8772415165688128,
+    "mae_pure_rows": 7.457941011020193
+   },
+   "seconds": 0.6
+  },
+  "expanding_2025-07": {
+   "rows_in_period": 1106824,
+   "no_target": 327785,
+   "no_recent_data": 3417,
+   "eval_rows": 775622,
+   "persistence": {
+    "mae": 4.588444126762729,
+    "rmse": 7.734819068589963
+   },
+   "seasonal_naive": {
+    "mae": 7.1564363302109655,
+    "rmse": 11.502455191989718,
+    "pure_coverage": 0.9212580354863581,
+    "mae_pure_rows": 7.373736039225221
+   },
+   "seconds": 0.6
+  },
+  "expanding_2025-08": {
+   "rows_in_period": 1106824,
+   "no_target": 286677,
+   "no_recent_data": 3424,
+   "eval_rows": 816723,
+   "persistence": {
+    "mae": 4.427672152442755,
+    "rmse": 7.44061244471433
+   },
+   "seasonal_naive": {
+    "mae": 6.4158702012177695,
+    "rmse": 10.395665604186174,
+    "pure_coverage": 0.911038381434097,
+    "mae_pure_rows": 6.618429963307598
+   },
+   "seconds": 0.6
+  },
+  "expanding_2025-09": {
+   "rows_in_period": 1071112,
+   "no_target": 294151,
+   "no_recent_data": 4029,
+   "eval_rows": 772932,
+   "persistence": {
+    "mae": 4.405256992337507,
+    "rmse": 7.438158855242701
+   },
+   "seasonal_naive": {
+    "mae": 6.943233615095428,
+    "rmse": 11.204125251261713,
+    "pure_coverage": 0.9291076058437223,
+    "mae_pure_rows": 7.090523200303899
+   },
+   "seconds": 0.6
+  },
+  "final_test": {
+   "rows_in_period": 3285256,
+   "no_target": 1030861,
+   "no_recent_data": 12847,
+   "eval_rows": 2241548,
+   "persistence": {
+    "mae": 4.309801941104215,
+    "rmse": 7.371822807924866
+   },
+   "seasonal_naive": {
+    "mae": 6.901761485799016,
+    "rmse": 11.222187087791449,
+    "pure_coverage": 0.8973294348369966,
+    "mae_pure_rows": 7.147868478140603
+   },
+   "seconds": 1.6
+  }
+ },
+ "tuning": {
+  "grid": [
+   {
+    "num_leaves": 31,
+    "min_child_samples": 100,
+    "learning_rate": 0.05,
+    "mean_mae": 3.7127178045936864,
+    "fold_mae": [
+     3.723410363750211,
+     3.702025245437162
+    ]
+   },
+   {
+    "num_leaves": 31,
+    "min_child_samples": 500,
+    "learning_rate": 0.05,
+    "mean_mae": 3.7120291535188965,
+    "fold_mae": [
+     3.7236710083245192,
+     3.7003872987132738
+    ]
+   },
+   {
+    "num_leaves": 63,
+    "min_child_samples": 100,
+    "learning_rate": 0.05,
+    "mean_mae": 3.700015756478824,
+    "fold_mae": [
+     3.7116125616590296,
+     3.688418951298619
+    ]
+   },
+   {
+    "num_leaves": 63,
+    "min_child_samples": 500,
+    "learning_rate": 0.05,
+    "mean_mae": 3.69783477549485,
+    "fold_mae": [
+     3.7088007217447196,
+     3.68686882924498
+    ]
+   },
+   {
+    "num_leaves": 127,
+    "min_child_samples": 100,
+    "learning_rate": 0.05,
+    "mean_mae": 3.6934188394438974,
+    "fold_mae": [
+     3.705379989741698,
+     3.6814576891460966
+    ]
+   },
+   {
+    "num_leaves": 127,
+    "min_child_samples": 500,
+    "learning_rate": 0.05,
+    "mean_mae": 3.6885213060124,
+    "fold_mae": [
+     3.7001856487436555,
+     3.6768569632811445
+    ]
+   }
+  ],
+  "best": {
+   "num_leaves": 127,
+   "min_child_samples": 500,
+   "learning_rate": 0.05
+  },
+  "folds": [
+   "expanding_2025-08",
+   "expanding_2025-09"
+  ],
+  "train_stride": 3
+ }
+}

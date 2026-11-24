@@ -88,7 +88,10 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
       - ./jobs:/opt/airflow/jobs
       - ./conf/spark-defaults.conf:/opt/spark-conf/spark-defaults.conf:ro
-      - ./data:/opt/data:ro 
+      - ./data:/opt/data:ro
+      - ./conf/ml:/opt/airflow/conf/ml:ro          # cấu hình ML (DAG trafficsp_ml_inference, ML_CONFIG)
+      - ./models/ml:/opt/airflow/models/ml:ro      # model đang phục vụ: current.json + manifest sha256
+      - ${LAKEHOUSE_WORK_DIR:-./docker-data/lakehouse}:/opt/lakehouse   # cùng thư mục làm việc với spark-master (logs, ml_models)
     ports:
       - "4040:4040"     # Spark UI của job đang chạy
       - "4041:4041"     # Spark UI cho speed layer
@@ -141,7 +144,7 @@ services:
       start_period: 10s
     restart: unless-stopped
     volumes:
-      - ./docker-data/minio_data:/data
+      - ${MINIO_DATA_DIR:-./docker-data/minio_data}:/data   # đổi chỗ lưu (vd ổ khác) bằng MINIO_DATA_DIR trong .env
       - ./minio.license:/minio.license:ro
     networks:
       - traffic-net
@@ -238,6 +241,7 @@ services:
       - ./jobs:/app/jobs:ro
       - ./scripts:/app/scripts:ro
       - ./data:/app/data:ro
+      - ./logs:/app/logs          # tóm tắt chạy producer (--summary-file), benchmark
     networks:
       - traffic-net
 
@@ -270,15 +274,22 @@ services:
       /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
       --host spark-master --port 7077 --webui-port 8080
     environment:
+      - SPARK_MASTER_OPTS=-Dspark.worker.timeout=120   # mặc định 60 s: VM khựng do thiếu RAM làm master xóa worker
       - KAFKA_BOOTSTRAP=kafka:29092
       - PYTHONPATH=/opt/spark/jobs
       - ICEBERG_DB_PASSWORD=${ICEBERG_DB_PASSWORD}
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_REGION=us-east-1
+      # Speed Layer (driver chạy liên tục trên spark-master) và các job submit từ đây import package common/
+      - PYTHONPATH=/opt/spark/jobs
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./data:/opt/data:ro
+      # Thư mục làm việc cục bộ (không phải dữ liệu Iceberg - dữ liệu nằm trên MinIO):
+      # logs/ = số đo vận hành Speed Layer (OPS_LOG_DIR), ml_models/ + ml_export/ = model và file xuất của ML
+      - ${LAKEHOUSE_WORK_DIR:-./docker-data/lakehouse}:/opt/lakehouse   # LAKEHOUSE_WORK_DIR trong .env: log, ml_models, ml_export
     ports:
       - "8090:8080" # Spark Master UI
       - "7077:7077"
@@ -292,9 +303,9 @@ services:
     hostname: spark-worker-1
     depends_on:
       - spark-master
-    command: >
-      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
-      spark://spark-master:7077 --cores 4 --memory 4g --webui-port 8081
+    # worker_entrypoint.sh = worker + watchdog: master xóa worker (mất heartbeat) thì container tự thoát để Docker
+    # khởi động lại và đăng ký mới (Spark 3.5 không tự đăng ký lại sau khi bị xóa)
+    command: bash /opt/spark/conf-extra/worker_entrypoint.sh --cores 4 --memory 4g --webui-port 8081
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
@@ -303,6 +314,7 @@ services:
     volumes:
       - ./jobs:/opt/spark/jobs
       - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./conf/spark/worker_entrypoint.sh:/opt/spark/conf-extra/worker_entrypoint.sh:ro
       - ./data:/opt/data:ro 
     ports:
       - "8091:8081" # worker 1 UI
@@ -339,15 +351,25 @@ services:
     container_name: traffic-grafana
     hostname: grafana
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"   # chỉ máy này: Grafana mở xem ẩn danh (bên dưới) để nhúng vào trang /ops
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource
+      # Image -slim KHÔNG kèm datasource Prometheus ("plugin not registered") -> cài khi khởi động, cùng Trino
+      - GF_PLUGINS_PREINSTALL_SYNC=trino-datasource,prometheus
+      # Nhúng dashboard Kafka/Spark vào trang Vận hành của dashboard TrafficSP (iframe, localhost:8095 -> localhost:3001):
+      # cho phép iframe và cho xem ẩn danh với quyền Viewer (chỉ đọc). Sửa dashboard vẫn phải đăng nhập admin.
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_AUTH_ANONYMOUS_HIDE_VERSION=true
     volumes:
       - ./docker-data/grafana:/var/lib/grafana
-      - ./conf/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./conf/grafana/provisioning:/etc/grafana/provisioning:ro   # datasource Prometheus + khai báo thư mục dashboard
+      - ./conf/grafana/dashboards:/etc/grafana/dashboards:ro       # file JSON dashboard (Kafka, Spark)
+    depends_on:
+      - prometheus
     restart: unless-stopped
     networks:
       - traffic-net
@@ -360,6 +382,8 @@ services:
     command:
       - --kafka.server=kafka:29092
       - --kafka.version=3.6.0   # mặc định 2.0.0 quá cũ so với Kafka 4.x
+    ports:
+      - "127.0.0.1:9308:9308"   # xem thử metric: curl localhost:9308/metrics
     depends_on:
       kafka:
         condition: service_healthy
@@ -367,7 +391,7 @@ services:
     networks:
       - traffic-net
 
-  # Prometheus: chỉ thu thập metrics Kafka và Spark, Grafana đọc qua datasource "Prometheus"
+  # Prometheus: metrics Kafka, Spark, tài nguyên container (cAdvisor) và máy (node-exporter); Grafana đọc qua datasource "Prometheus"
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: traffic-prometheus
@@ -377,11 +401,57 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --web.enable-lifecycle      # cho phép nạp lại config: curl -X POST localhost:9090/-/reload
+      - --storage.tsdb.retention.size=1GB   # trần dung lượng: đầy thì xoá block cũ nhất trước hạn 15 ngày
     ports:
       - "9090:9090"
     volumes:
-      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # mount cả thư mục: Docker Desktop (Mac/Windows) mount từng file thì sửa xong container vẫn đọc bản cũ/bị cắt cụt
+      - ./conf/prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
+    depends_on:
+      - kafka-exporter
+      - cadvisor
+      - node-exporter
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # cAdvisor: CPU / RAM / mạng / IO của từng container -> Prometheus (dashboard Grafana "Tài nguyên hệ thống")
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6     # >= v0.53 mới đọc được Docker 29 dùng containerd-snapshotter
+    container_name: traffic-cadvisor
+    hostname: cadvisor
+    command:
+      - --docker_only=true                 # chỉ container Docker, bỏ cgroup hệ thống của VM
+      - --housekeeping_interval=15s        # khớp scrape_interval, đỡ tốn CPU
+      - --store_container_labels=false     # không đẩy toàn bộ label compose thành label Prometheus
+      - --disable_metrics=percpu,sched,tcp,udp,disk,hugetlb,referenced_memory,cpu_topology,resctrl,cpuset,advtcp,memory_numa,process
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    mem_limit: 200m
+    restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # node-exporter: CPU / RAM / swap / đĩa của máy chạy Docker (VM WSL2 của Docker Desktop, tức tiến trình vmmem)
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: traffic-node-exporter
+    hostname: node-exporter
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|host/(dev|proc|sys|run))($$|/)
+    pid: host
+    volumes:
+      - /:/host:ro
+    mem_limit: 64m
     restart: unless-stopped
     networks:
       - traffic-net
@@ -399,6 +469,9 @@ services:
       - "127.0.0.1:8088:8080"
     volumes:
       - ./conf/trino/catalog:/etc/trino/catalog:ro
+      - ./conf/trino/access:/etc/trino/access:ro      # quyền: chỉ đọc dữ liệu, chỉ tạo VIEW trong schema serving
+      - ./conf/trino/cache-manager-memory.properties:/etc/trino/cache-manager-memory.properties:ro   # cache trong heap 512 MB thay vì 2 GB mặc định
+      - ./jobs/serving:/opt/trino-sql:ro              # trino_views.sql (Serving Layer)
     mem_limit: 3g
     healthcheck:
       test: ["CMD-SHELL", "/usr/lib/trino/bin/health-check"]
@@ -431,6 +504,35 @@ services:
       trino:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - traffic-net
+
+  # Dashboard nghiệp vụ (FastAPI + frontend tĩnh): đọc Trino/Airflow/Prometheus/Spark, chỉ đọc. Xem docs/dashboard_design.md
+  dashboard:
+    build:
+      context: ./dashboard
+    image: ad/trafficsp-dashboard:0.1
+    container_name: traffic-dashboard
+    hostname: dashboard
+    ports:
+      - "8095:8095"
+    environment:
+      - TRINO_URL=http://trino:8080
+      - AIRFLOW_URL=http://airflow-apiserver:8080
+      - AIRFLOW_USER=${AIRFLOW_ADMIN_USER}           # chỉ dùng phía server, không trả về frontend
+      - AIRFLOW_PASSWORD=${AIRFLOW_ADMIN_PASSWORD}
+      - PROMETHEUS_URL=http://prometheus:9090
+      - SPARK_MASTER_URL=http://spark-master:8080
+    volumes:
+      - ./dashboard/api:/app/api:ro
+      - ./dashboard/web/dist:/app/web:ro
+      - ./reports/ml:/app/reports/ml:ro
+      - ./models/ml:/app/models:ro
+      - ${LAKEHOUSE_WORK_DIR:-./docker-data/lakehouse}/logs:/app/opslogs:ro
+    depends_on:
+      - trino
+    restart: unless-stopped
+    mem_limit: 256m
     networks:
       - traffic-net
 
