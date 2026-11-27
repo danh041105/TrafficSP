@@ -16,3 +16,4 @@ plugins/
 *.log
 # Dữ liệu và artifact train ML (model.json ~139 MB, quá giới hạn GitHub)
 data/ml/
+node_modules/

@@ -52,7 +52,11 @@ ENV = {**os.environ, "MSYS_NO_PATHCONV": "1"}
 def sh(*cmd, check=True, capture=True, input_=None) -> str:
     r = subprocess.run(list(cmd), capture_output=capture, text=True, encoding="utf-8", errors="replace", env=ENV, input=input_)
     if check and r.returncode != 0:
-        raise RuntimeError(f"{' '.join(cmd[:6])}… lỗi {r.returncode}: {(r.stderr or r.stdout)[-800:]}")
+        # spark-submit in log ShutdownHookManager sau traceback Python: lấy từ traceback cuối nếu có, không chỉ đuôi stderr
+        err = r.stderr or r.stdout or ""
+        i = err.rfind("Traceback (most recent call last)")
+        detail = err[i:i + 2000] if i >= 0 else err[-800:]
+        raise RuntimeError(f"{' '.join(cmd[:6])}… lỗi {r.returncode}: {detail}")
     return r.stdout if capture else ""
 
 
@@ -97,7 +101,10 @@ def spark_submit(script: str, env: dict | None = None, *args):
 
 # ---------------------------------------------------------------- Speed Layer
 def speed_queries() -> int:
-    r = subprocess.run(["curl", "-s", "-m", "5", "http://localhost:4041/StreamingQuery/"], capture_output=True, text=True, env=ENV)
+    # Hỏi Spark UI từ TRONG spark-master (driver Speed Layer chạy ở đó). Cổng 4041 trên host map vào airflow-scheduler,
+    # nên curl localhost:4041 từ host không thấy Speed Layer và luôn đếm ra 0.
+    r = subprocess.run(["docker", "exec", SPARK, "curl", "-s", "-m", "5", "http://localhost:4041/StreamingQuery/"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", env=ENV)
     m = re.search(r"Active Streaming Queries \((\d+)\)", r.stdout or "")
     return int(m.group(1)) if m else 0
 
@@ -151,9 +158,11 @@ def cmd_start(a):
               f"đã gửi {status['sent']:,} message, {pct:.0f}% khoảng giờ", flush=True)
 
     save()
-    for t in topics.values():
+    # Số partition giống topic chính: traffic_raw 4 (key link_id), weather_raw 1 (key cell_id)
+    for key, t in topics.items():
+        parts = "4" if key == "TOPIC_TRAFFIC" else "1"
         sh("docker", "exec", KAFKA, "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--create",
-           "--if-not-exists", "--topic", t, "--partitions", "4", "--replication-factor", "1")
+           "--if-not-exists", "--topic", t, "--partitions", parts, "--replication-factor", "1")
     ddl_env = {k: v for k, v in env.items() if k.endswith("_NAMESPACE") or k == "GOLD_DIM_ROAD_LINK"}
     for ddl in ("ddl/speed.py", "ddl/bronze.py", "ddl/silver.py", "ddl/gold.py"):   # gold.py tạo tag published (rỗng)
         spark_submit(ddl, ddl_env)

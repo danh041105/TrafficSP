@@ -26,17 +26,11 @@ from common.spark_session import build_spark
 from common.trino_http import TRINO_URL, query
 from ml.feature_engineering import build_features
 from ml.feature_sets import add_fold_features, add_static_codes
+from ml.forecast_table import FORECAST_DDL
 from ml.lgbm_numpy import NumpyBooster, model_file
 from ml.metrics import traffic_state
 from ml.mlconfig import load_config
 
-FORECAST_DDL = """CREATE TABLE IF NOT EXISTS {t} (
-  link_id BIGINT, prediction_origin_utc TIMESTAMP, target_window_start_utc TIMESTAMP, target_window_end_utc TIMESTAMP,
-  data_cutoff_utc TIMESTAMP, predicted_speed DOUBLE, predicted_traffic_state STRING, free_flow_speed DOUBLE,
-  speed_last_known_60 DOUBLE, n_valid_60 INT, minutes_since_valid DOUBLE, weather_record_utc TIMESTAMP, weather_missing INT,
-  feature_complete BOOLEAN, model_version STRING, feature_version STRING, baseline_as_of_utc TIMESTAMP, input_source STRING,
-  created_at TIMESTAMP)
-USING iceberg PARTITIONED BY (days(prediction_origin_utc)) TBLPROPERTIES ('format-version' = '2')"""
 KEY = ["link_id", "prediction_origin_utc", "model_version"]
 
 
